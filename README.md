@@ -39,10 +39,19 @@ The aim of the system is to design and develop a secure and user-friendly platfo
 
 ## Application Description:  
 The thesis progress tracker is a system designed to effectively manage all activities related to diploma thesis supervision. The system is built around three user roles such as: Student, Supervisor, and Administrator. Each user has their own specific capabilities and access rights.  
-**System Users and Key Features:**  
+**System Users:**  
 - **Student:** Each student can register and create a personal profile linked to their thesis project. They are allowed to upload documents related to their thesis in PDF or DOCX format and view the version history of their submissions. Furthermore, students can read and respond to supervisors' comments and feedback. They can also request and schedule meetings with their assigned supervisor and view confirmed meeting notes. Finally, they can easily monitor the milestones and deadlines through a personal dashboard and receive notifications for feedback/comments, confirmations, and upcoming deadlines.  
 - **Supervisor:** Similar to students, supervisors can register and create a profile, where they are assigned to supervise one or more students. Supervisors can download and review students' submissions, leave comments on documents, and read student replies. They are capable of creating and assigning milestones with deadlines and view a summarizing dashboard with the students' current progress. The supervisor can confirm or decline meeting requests, adding the date, time, and notes.  
 - **Administrator:** The administrator manages user accounts and assigns students to supervisors and oversees all thesis projects. The administrator has read access to all the submitted documents and communications for oversight purposes.
+
+**Key Features:**  
+In order to facilitate the entire thesis supervision lifecycle, the system provides six key features.  
+**User Management** supports profile creation and role-based access for students, supervisors, and administrators.  
+**Document Management** enables secure file uploads in PDF and Docx format, with version history.  
+**Feedback and communication** provides a structured commenting system on submitted documents, allowing replies that keep all the feedback organized in one place.  
+**Milestone Tracking** allows thesis phases to be defined with specific deadlines through a personalized dashboard.  
+**Meeting Scheduling** offers a formal meeting requests and confirmation, with each session logged alongside its date and notes.  
+Finally, an automated **notification** system delivers reminders while keeping informed every party without manual follow-up.
 
   
 ## 3.Roles and Task Distribution  
