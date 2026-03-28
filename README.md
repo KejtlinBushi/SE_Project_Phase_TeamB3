@@ -7,10 +7,11 @@
 Kejtlin Bushi - GitHub: KejtlinBushi Email: kbushi23@epoka.edu.al  
 
 ## All team members:
-- Amanda Markeçi - GitHub: amarkeci23-collab Email: amarkeci23@epoka.edu.al 
-- Floralba Shehu - GitHub: FloralbaShehu Email: fshehu23@epoka.edu.al
-- Kejtlin Bushi - GitHub: KejtlinBushi Email: kbushi23@epoka.edu.al
-- Serena Korbi - GitHub: serenaskb Email: skorbi23@epoka.edu.al
+- Amanda Markeçi :&nbsp;&nbsp; GitHub: amarkeci23-collab &nbsp;&nbsp; Email: amarkeci23@epoka.edu.al 
+- Floralba Shehu :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GitHub: FloralbaShehu   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: fshehu23@epoka.edu.al
+- Kejtlin Bushi  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GitHub: KejtlinBushi &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: kbushi23@epoka.edu.al
+- Serena Korbi   :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   GitHub: serenaskb   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: skorbi23@epoka.edu.al
+  
 
 # 2. Project Details
 ## Project Title: Thesis Progress Tracker
@@ -37,12 +38,13 @@ The aim of the system is to design and develop a secure and user-friendly platfo
 -	Ensure the system meets non-functional requirements including 99% availability, daily document backups, responsive design, and role-based access control.
 
 ## Application Description:  
-The thesis progress tracker is a system designed to manage effectively all the activities related to diploma thesis supervision. The system is built around three user roles such as Student, Supervisor, and Administrator. Every user has its own specific capabilities and access rights.  
-**System Users:**  
-- **Student:** Every Student can register and create a personal profile linked to their thesis project. They are allowed to upload different documents regarding their thesis in PDF or DOCX format and view the version history of their submissions. Furthermore, students can read and respond to supervisors comments and feedback. They can also request and arrange meetings with their assigned supervisor and view confirmed meeting notes. Finally, they can easily monitor the milestones and deadlines via a personal dashboard and recieve notifications for feedback/comments, confirmations, and upcoming deadlines.  
-- **Supervisor:** Similarly to the students, supervisors can register and create a profile, where they are assigned to supervise one or more students. Supervisors can download and review student's submissions, leave comments on documents and read student replies. They are capable of creating and assigning milestones with deadlines and view a summarizing dashboard with the students current progress. The supervisor confirms or declines meeting requests, adding date, time and even notes.  
-- **Administrator:** Manages user accounts and assigns students to supervisors and oversees all thesis projects. The administrator has read access to all the submitted documents and communications for oversight purposes.
+The thesis progress tracker is a system designed to effectively manage all activities related to diploma thesis supervision. The system is built around three user roles such as: Student, Supervisor, and Administrator. Each user has their own specific capabilities and access rights.  
+**System Users and Key Features:**  
+- **Student:** Each student can register and create a personal profile linked to their thesis project. They are allowed to upload documents related to their thesis in PDF or DOCX format and view the version history of their submissions. Furthermore, students can read and respond to supervisors' comments and feedback. They can also request and schedule meetings with their assigned supervisor and view confirmed meeting notes. Finally, they can easily monitor the milestones and deadlines through a personal dashboard and receive notifications for feedback/comments, confirmations, and upcoming deadlines.  
+- **Supervisor:** Similar to students, supervisors can register and create a profile, where they are assigned to supervise one or more students. Supervisors can download and review students' submissions, leave comments on documents, and read student replies. They are capable of creating and assigning milestones with deadlines and view a summarizing dashboard with the students' current progress. The supervisor can confirm or decline meeting requests, adding the date, time, and notes.  
+- **Administrator:** The administrator manages user accounts and assigns students to supervisors and oversees all thesis projects. The administrator has read access to all the submitted documents and communications for oversight purposes.
 
+  
 ## 3.Roles and Task Distribution  
 - Amanda Markeçi
 - Floralba Shehu
