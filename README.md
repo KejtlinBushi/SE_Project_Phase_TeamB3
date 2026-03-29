@@ -55,8 +55,15 @@ Finally, an automated **notification** system delivers reminders while keeping i
 
   
 ## 3.Roles and Task Distribution  
-- Amanda Markeçi
-- Floralba Shehu
-- Kejtlin Bushi
-- Serena Korbi
+- Amanda Markeçi: Meeting Scheduling and Notifications
+Amanda is responsible for building the meeting request and its confirmation including the date, time and session notes, and implementing the notification system that triggers across all features.
+- Floralba Shehu: User Management and Authentication
+Floralba is responsible for designing and implementing the login, registration and profile cration for all the roles involved in the system. And building the admin pannel for managing all user accounts and assignments, and handle the role-based access through the system. 
+- Kejtlin Bushi: Document Management and Feedback
+Kejtlin is responsible for building the file upload system supporting PDF and DOCX formats, and implementing a version history, and develop the document viewer and download functionality for advisors. Furthermore, is responsible for buildingg the commenting system on the submitted documents.
+- Serena Korbi:  Milestone Tracking
+Serena is responsible for implementing the milestone creation, deadline assignment functionality, and develop the progress dashboard for both students and advisor where they can view the progress of each of the students' progress for the assigned tasks.
+**Shared roles by all team members:**
+The whole team should collaborate on designing and agreeing on the database schema before the development of the system beging.
 
+****Note:*** The responsibilities outlined above for each team member represent the initial task distribution and may evolve as the project progresses. And all team members may take additional tasks based on the workloads or project needs.
