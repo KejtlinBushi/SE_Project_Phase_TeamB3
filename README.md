@@ -4,13 +4,13 @@
 ## Team Name: ThesiFy  
 
 ## Team Leader: 
-Kejtlin Bushi - GitHub: KejtlinBushi Email: kbushi23@epoka.edu.al  
+Kejtlin Bushi - GitHub: KejtlinBushi, Email: kbushi23@epoka.edu.al  
 
 ## All team members:
 - Amanda Markeçi :&nbsp;&nbsp; GitHub: amarkeci23-collab &nbsp;&nbsp; Email: amarkeci23@epoka.edu.al 
 - Floralba Shehu :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GitHub: FloralbaShehu   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: fshehu23@epoka.edu.al
 - Kejtlin Bushi  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GitHub: KejtlinBushi &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: kbushi23@epoka.edu.al
-- Serena Korbi   :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   GitHub: serenaskb   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: skorbi23@epoka.edu.al
+- Serena Korbi   :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   GitHub: Serenaskb   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Email: skorbi23@epoka.edu.al
   
 
 # 2. Project Details
@@ -51,19 +51,20 @@ In order to facilitate the entire thesis supervision lifecycle, the system provi
 **Feedback and communication** provides a structured commenting system on submitted documents, allowing replies that keep all the feedback organized in one place.  
 **Milestone Tracking** allows thesis phases to be defined with specific deadlines through a personalized dashboard.  
 **Meeting Scheduling** offers a formal meeting requests and confirmation, with each session logged alongside its date and notes.  
-Finally, an automated **notification** system delivers reminders while keeping informed every party without manual follow-up.
+Finally, a **notification** system delivers reminders while keeping informed every party without manual follow-up.
 
   
 ## 3.Roles and Task Distribution  
-- Amanda Markeçi: Meeting Scheduling and Notifications
+- Amanda Markeçi: Meeting Scheduling and Notifications.
 Amanda is responsible for building the meeting request and its confirmation including the date, time and session notes, and implementing the notification system that triggers across all features.
-- Floralba Shehu: User Management and Authentication
-Floralba is responsible for designing and implementing the login, registration and profile cration for all the roles involved in the system. And building the admin pannel for managing all user accounts and assignments, and handle the role-based access through the system. 
-- Kejtlin Bushi: Document Management and Feedback
-Kejtlin is responsible for building the file upload system supporting PDF and DOCX formats, and implementing a version history, and develop the document viewer and download functionality for advisors. Furthermore, is responsible for buildingg the commenting system on the submitted documents.
-- Serena Korbi:  Milestone Tracking
-Serena is responsible for implementing the milestone creation, deadline assignment functionality, and develop the progress dashboard for both students and advisor where they can view the progress of each of the students' progress for the assigned tasks.
-**Shared roles by all team members:**
-The whole team should collaborate on designing and agreeing on the database schema before the development of the system beging.
+- Floralba Shehu: User Management and Authentication.
+Floralba is responsible for designing and implementing the login, registration and profile cration for all the roles involved in the system. Additionally, she will build the admin panel for managing all user accounts and assignments, and handle the role-based access through the system. 
+- Kejtlin Bushi: Document Management and Feedback.
+Kejtlin is responsible for building the file upload system supporting PDF and DOCX formats, and implementing a version history, and develop the document viewer and download functionality for advisors. Furthermore, is responsible for building the commenting system on the submitted documents.
+- Serena Korbi:  Milestone Tracking.
+Serena is responsible for implementing the milestone creation, deadline assignment functionality, and develop the progress dashboard for both students and advisor where they can view the progress of assigned tasks for each student.
 
-****Note:*** The responsibilities outlined above for each team member represent the initial task distribution and may evolve as the project progresses. And all team members may take additional tasks based on the workloads or project needs.
+**Shared roles by all team members:**
+The whole team should collaborate on designing and agreeing on the database schema before the development of the system begins.
+
+****Note:*** The responsibilities outlined above for each team member represent the initial task distribution and may evolve as the project progresses. All team members may take additional tasks based on the workloads or project needs.
