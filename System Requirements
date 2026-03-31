@@ -1,0 +1,27 @@
+1. Development Model:
+Agile
+2. User Requirements
+a) Stakeholders:
+-Students
+-Supervisor
+-Administrator
+b) User Stories
+Student:
+-As a student, I want to register, in order to access the system.
+-As a student, I want to submit the thesis progress so that my advisor can review it.
+-As a student, I want to communicate with my supervisor, so to recieve feedback from the supervisor.
+-As a student I want to view deadlines in order to manage my work.
+-As a student, I want to recieve notifications so that I can stay updated.
+
+Supervisor:
+-As a supervisor, I want to review student submissions so that I can evaluate the progress. 
+-As a supervisor, I want to set deadlines, in order to view the progress of the assigned students.
+-As a supervisor, I want to provide feedback so the students can improve and modify their work.
+-As a supervisor, I want to arrange meetings, in order to communicate with the students regarding their progress.
+
+Administrator:
+-As an administrator, I want to manage user account so that access is controlled.
+-As an administrator, I want to assign advisors to studentsso that supervision is organized.
+
+3. Functional Requirements
+Te editoj profile psh pass
