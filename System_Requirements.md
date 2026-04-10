@@ -4,9 +4,7 @@
 **Agile**
 
 
-
 ## 2. User Requirements
-
 ### a) Stakeholders:
 - Students  
 - Supervisor  
@@ -14,7 +12,6 @@
 
 
 ### b) User Stories
-
 #### Student
 - As a student, I want to register, in order to access the system.  
 - As a student, I want to submit the thesis progress so that my advisor can review it.  
@@ -38,9 +35,7 @@
 
 
 ## 3. Functional Requirements
-
 ### Student
-
 1. The Student registers an account by providing a full name, a unique email address, a password, and selecting the Student role; the system rejects registration if the email is already in use.  
 2. The Student uploads their thesis document in PDF format only the system rejects any non-PDF file before saving and displays an error message specifying the accepted format.  
 3. The Student can submit an updated version of their thesis multiple times each new submission is stored as a separate version without overwriting any previous submission.  
@@ -51,9 +46,7 @@
 8. The Student can send text messages to their assigned Supervisor and can attach a single PDF file per message; the system rejects attachments that are not PDF or exceed 10 MB.  
 9. The Student can update their full name, profile photo, and password from their account settings page at any time without administrator involvement.  
 
-
 ### Supervisor (Professor)
-
 11. The Supervisor can view a list of all students assigned to them by the Administrator, displaying each student's full name, thesis title, date of last submission, and current submission status.  
 12. The Supervisor can open and read any PDF submission from their assigned students directly within the system browser view, without downloading the file.  
 13. The Supervisor can write a feedback comment on any student submission and save it the comment becomes immediately visible to the Student upon saving.  
@@ -65,9 +58,7 @@
 19. The Supervisor can view the full message history with each assigned student in chronological order, with the 50 most recent messages loaded on first open and older messages accessible by scrolling up.  
 20. The Supervisor can update their full name, profile photo, and password from their account settings page at any time without administrator involvement.  
 
-
 ### Administrator (Admin)
-
 21. The Administrator can create a new user account by providing a full name, email address, temporary password, and role (Student or Supervisor) the system sends a welcome email prompting the user to change their password on first login.  
 22. The Administrator can edit the full name, email address, and role of any existing user account; changes take effect immediately and the affected user receives an in-app notification.  
 23. The Administrator can delete a user account upon deletion all associated thesis submissions, feedback, and messages are anonymised rather than permanently erased, preserving the audit trail.  
@@ -81,7 +72,6 @@
 
 
 ## b. Acceptance Criteria (When we know it WORKS correctly)
-
 ### User Login
 **Acceptance Criteria:**
 - User enters a valid email and password  
