@@ -2,6 +2,7 @@
 
 ## 1. Development Model:
 **Agile**
+Agile is used as the development model because it supports an iterative and flexible approach to building the system. Instead of developing the entire application at once, the project is divided into smaller increments, allowing each feature (such as user registration, document submission, and messaging) to be designed, developed, and tested step by step. This approach makes it easier to adapt to changing requirements and incorporate feedback from users or supervisors throughout the development process. Additionally, Agile helps identify and resolve issues early, improving the overall quality of the system. Therefore, it is particularly suitable for this project, where continuous improvement, user interaction, and evolving requirements are essential.
 
 
 ## 2. User Requirements
