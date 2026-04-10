@@ -12,7 +12,6 @@
 - Supervisor  
 - Administrator  
 
----
 
 ### b) User Stories
 
@@ -23,7 +22,6 @@
 - As a student I want to view deadlines in order to manage my work.  
 - As a student, I want to recieve notifications so that I can stay updated.  
 
----
 
 #### Supervisor
 - As a supervisor, I want to review student submissions so that I can evaluate the progress.  
@@ -31,7 +29,6 @@
 - As a supervisor, I want to provide feedback so the students can improve and modify their work.  
 - As a supervisor, I want to arrange meetings, in order to communicate with the students regarding their progress.  
 
----
 
 #### Administrator
 - As an administrator, I want to manage user accounts, so that system access is controlled.  
@@ -39,7 +36,6 @@
 - As an administrator, I want to create and manage academic departments, so that students and supervisors are properly organized.  
 - As an administrator, I want to monitor system activity, so that I can ensure everything is functioning correctly.  
 
----
 
 ## 3. Functional Requirements
 
@@ -55,7 +51,6 @@
 8. The Student can send text messages to their assigned Supervisor and can attach a single PDF file per message; the system rejects attachments that are not PDF or exceed 10 MB.  
 9. The Student can update their full name, profile photo, and password from their account settings page at any time without administrator involvement.  
 
----
 
 ### Supervisor (Professor)
 
@@ -70,7 +65,6 @@
 19. The Supervisor can view the full message history with each assigned student in chronological order, with the 50 most recent messages loaded on first open and older messages accessible by scrolling up.  
 20. The Supervisor can update their full name, profile photo, and password from their account settings page at any time without administrator involvement.  
 
----
 
 ### Administrator (Admin)
 
@@ -85,7 +79,6 @@
 29. The system automatically records an activity log entry for every significant action performed by any user  including login, logout, thesis submission, feedback submission, status change, deadline creation, and account modification  storing the actor's identity, action type, and timestamp.  
 30. The Administrator can view and filter the full activity log by user, role, action type, or date range, enabling audit and oversight of all system activity.  
 
----
 
 ## b. Acceptance Criteria (When we know it WORKS correctly)
 
@@ -97,7 +90,6 @@
 - Error message is shown for invalid credentials  
 - Account is locked after multiple failed attempts  
 
----
 
 ### User Registration
 **Acceptance Criteria:**
@@ -107,7 +99,6 @@
 - Confirmation message is displayed  
 - Error message is shown if email already exists  
 
----
 
 ### Upload Thesis Document
 **Acceptance Criteria:**
@@ -117,7 +108,6 @@
 - Error message is shown for invalid file type  
 - Uploaded file is saved in the system  
 
----
 
 ### Submit Thesis Version
 **Acceptance Criteria:**
@@ -126,7 +116,6 @@
 - Previous versions remain unchanged  
 - Submission timestamp is recorded  
 
----
 
 ### View Submissions
 **Acceptance Criteria:**
@@ -134,7 +123,6 @@
 - Each submission shows version number and date  
 - Submission status is displayed (Pending, Approved, Rejected)  
 
----
 
 ### Messaging System
 **Acceptance Criteria:**
@@ -144,7 +132,6 @@
 - User can attach a PDF file  
 - Error is shown if file exceeds allowed size  
 
----
 
 ### Deadlines Management
 **Acceptance Criteria:**
@@ -153,7 +140,6 @@
 - Deadline shows title and due date  
 - System indicates if deadline has passed  
 
----
 
 ### Feedback System
 **Acceptance Criteria:**
@@ -161,7 +147,6 @@
 - Feedback is saved successfully  
 - Student can view feedback immediately  
 
----
 
 ### Profile Management
 **Acceptance Criteria:**
@@ -169,7 +154,6 @@
 - Changes are saved successfully  
 - Updated data is reflected immediately  
 
----
 
 ### Admin User Management
 **Acceptance Criteria:**
@@ -178,14 +162,12 @@
 - Admin deletes user account  
 - Changes are applied immediately  
 
----
 
 ### Dashboard & Statistics
 **Acceptance Criteria:**
 - Data is displayed correctly  
 - Information updates in real time  
 
----
 
 ### Activity Log
 **Acceptance Criteria:**
