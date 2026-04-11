@@ -70,7 +70,27 @@ Agile is used as the development model because it supports an iterative and flex
 27. The Administrator logs in using their registered email address and password; the login page does not expose the Admin role to public registration.  
 28. The Administrator can update their own full name, profile photo, and password from the account settings page at any time.  
 29. The system automatically records an activity log entry for every significant action performed by any user  including login, logout, thesis submission, feedback submission, status change, deadline creation, and account modification  storing the actor's identity, action type, and timestamp.  
-30. The Administrator can view and filter the full activity log by user, role, action type, or date range, enabling audit and oversight of all system activity.  
+30. The Administrator can view and filter the full activity log by user, role, action type, or date range, enabling audit and oversight of all system activity.
+
+## Non-Functional Requirements  
+1. The system should load the dashboard within 3 seconds under normal conditions.
+2. Notifications should appear within 5 seconds after the triggering actions.
+3. The system should require authentication for all users.
+4. The system should support at least 100 users without significant degradation in response time.
+5. The system should ensure that users can access only data permitted by their role.
+6. The system should enforce secure password rules such as the minimum length required or the complexity of the password.
+7. The system should be available at least 97% of the time excluding scheduled maintenance.
+8. The system shall maintain data consistency so that feedback, statuses, deadlines, and messages are saved correctly even in case of temporary interruptions.
+9. The user interface should be simple so the students, supervisors and administrators can navigate the system with minimal training.
+10. The system should provide clear error messages whenever an action fails.
+11. The system should be responsive in order to be used on tablet, desktop and mobile devices.
+12. The system should be able to support an increasing number of students ans supervisors.
+13. Changes to one module should not negatively affect unrelated modules.
+14. The system should make important information and notifications easy to identify.
+15. The system should maintain data consistency including file submissions, feedback, messages are saved correctly.
+16. The system should limit the size of the uploaded files.
+17. The system should save user actions without requiring the user to refresh the page.
+
 
 
 ## b. Acceptance Criteria (When we know it WORKS correctly)
