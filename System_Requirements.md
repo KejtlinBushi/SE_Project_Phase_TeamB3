@@ -8,9 +8,9 @@ Agile is used as the development model because it supports an iterative and flex
 
 ## 2. User Requirements
 ### a) Stakeholders:
-- Students  
-- Supervisor  
-- Administrator  
+- Students: Students are the primary users of the system, using it to manage their thesis work. They register, submit thesis documents and updated versions, view deadlines, and communicate with supervisors. Their main interest is to track their progress, receive timely feedback, and successfully complete their thesis.
+- Supervisor: Supervisors are responsible for guiding and evaluating students throughout their thesis process. They review submissions, provide feedback, set deadlines, and communicate with students. Their main interest is to monitor progress and ensure the quality and successful completion of student work.
+- Administrator : Administrators manage the system and ensure its proper operation. They handle user accounts, assign supervisors to students, organize departments, and monitor system activity. Their main interest is to maintain system organization, security, and overall functionality.
 
 
 ### b) User Stories
@@ -72,30 +72,7 @@ Agile is used as the development model because it supports an iterative and flex
 29. The system automatically records an activity log entry for every significant action performed by any user  including login, logout, thesis submission, feedback submission, status change, deadline creation, and account modification  storing the actor's identity, action type, and timestamp.  
 30. The Administrator can view and filter the full activity log by user, role, action type, or date range, enabling audit and oversight of all system activity.
 
-## Non-Functional Requirements  
-1. The system should load the dashboard within 3 seconds under normal conditions.
-2. Notifications should appear within 5 seconds after the triggering actions.
-3. The system should require authentication for all users.
-4. The system should support at least 100 users without significant degradation in response time.
-5. The system should ensure that users can access only data permitted by their role.
-6. The system should enforce secure password rules such as the minimum length required or the complexity of the password.
-7. The system should be available at least 97% of the time excluding scheduled maintenance.
-8. The system shall maintain data consistency so that feedback, statuses, deadlines, and messages are saved correctly even in case of temporary interruptions.
-9. The user interface should be simple so the students, supervisors and administrators can navigate the system with minimal training.
-10. The system should provide clear error messages whenever an action fails.
-11. The system should be responsive in order to be used on tablet, desktop and mobile devices.
-12. The system should be able to support an increasing number of students ans supervisors.
-13. Changes to one module should not negatively affect unrelated modules.
-14. The system should make important information and notifications easy to identify.
-15. The system should maintain data consistency including file submissions, feedback, messages are saved correctly.
-16. The system should limit the size of the uploaded files.
-17. The system should save user actions without requiring the user to refresh the page.
-18. The system should perform automatic data backups at regular intervals to prevent data loss.
-19. The system should log important user actions and system events for monitoring and auditing purposes.
-
-
-
-## b. Acceptance Criteria for Functional and Non-Functional Requirements
+## b. Acceptance Criteria for Functional Requirements
 ### User Login
 - User enters a valid email and password  
 - System verifies credentials  
@@ -165,6 +142,31 @@ Agile is used as the development model because it supports an iterative and flex
 - System records user actions  
 - Each log includes user, action, and timestamp  
 - Admin can view and filter logs
+
+
+## 4. Non-Functional Requirements  
+1. The system should load the dashboard within 3 seconds under normal conditions.
+2. Notifications should appear within 5 seconds after the triggering actions.
+3. The system should require authentication for all users.
+4. The system should support at least 100 users without significant degradation in response time.
+5. The system should ensure that users can access only data permitted by their role.
+6. The system should enforce secure password rules such as the minimum length required or the complexity of the password.
+7. The system should be available at least 97% of the time excluding scheduled maintenance.
+8. The system shall maintain data consistency so that feedback, statuses, deadlines, and messages are saved correctly even in case of temporary interruptions.
+9. The user interface should be simple so the students, supervisors and administrators can navigate the system with minimal training.
+10. The system should provide clear error messages whenever an action fails.
+11. The system should be responsive in order to be used on tablet, desktop and mobile devices.
+12. The system should be able to support an increasing number of students ans supervisors.
+13. Changes to one module should not negatively affect unrelated modules.
+14. The system should make important information and notifications easy to identify.
+15. The system should maintain data consistency including file submissions, feedback, messages are saved correctly.
+16. The system should limit the size of the uploaded files.
+17. The system should save user actions without requiring the user to refresh the page.
+18. The system should perform automatic data backups at regular intervals to prevent data loss.
+19. The system should log important user actions and system events for monitoring and auditing purposes.
+
+
+## b. Acceptance Criteria
 
 ### Dashboard Performance  
 - User logs into the systems.
