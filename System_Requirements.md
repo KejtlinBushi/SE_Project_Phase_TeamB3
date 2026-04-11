@@ -90,12 +90,13 @@ Agile is used as the development model because it supports an iterative and flex
 15. The system should maintain data consistency including file submissions, feedback, messages are saved correctly.
 16. The system should limit the size of the uploaded files.
 17. The system should save user actions without requiring the user to refresh the page.
+18. The system should perform automatic data backups at regular intervals to prevent data loss.
+19. The system should log important user actions and system events for monitoring and auditing purposes.
 
 
 
-## b. Acceptance Criteria (When we know it WORKS correctly)
+## b. Acceptance Criteria for Functional and Non-Functional Requirements
 ### User Login
-**Acceptance Criteria:**
 - User enters a valid email and password  
 - System verifies credentials  
 - User is redirected to the dashboard after login  
@@ -104,7 +105,6 @@ Agile is used as the development model because it supports an iterative and flex
 
 
 ### User Registration
-**Acceptance Criteria:**
 - User enters full name, email, password, and role  
 - System checks if email is unique  
 - Account is created successfully  
@@ -113,7 +113,6 @@ Agile is used as the development model because it supports an iterative and flex
 
 
 ### Upload Thesis Document
-**Acceptance Criteria:**
 - User selects a file to upload  
 - System accepts only PDF format  
 - File is uploaded successfully  
@@ -122,22 +121,13 @@ Agile is used as the development model because it supports an iterative and flex
 
 
 ### Submit Thesis Version
-**Acceptance Criteria:**
 - User submits a new version of the thesis  
 - System stores the submission as a new version  
 - Previous versions remain unchanged  
 - Submission timestamp is recorded  
 
 
-### View Submissions
-**Acceptance Criteria:**
-- User can see a list of all submissions  
-- Each submission shows version number and date  
-- Submission status is displayed (Pending, Approved, Rejected)  
-
-
 ### Messaging System
-**Acceptance Criteria:**
 - User sends a message to another user  
 - Message is delivered successfully  
 - Message appears in conversation history  
@@ -146,7 +136,6 @@ Agile is used as the development model because it supports an iterative and flex
 
 
 ### Deadlines Management
-**Acceptance Criteria:**
 - Supervisor creates a deadline  
 - Deadline is visible to assigned students  
 - Deadline shows title and due date  
@@ -154,36 +143,53 @@ Agile is used as the development model because it supports an iterative and flex
 
 
 ### Feedback System
-**Acceptance Criteria:**
 - Supervisor writes feedback on submission  
 - Feedback is saved successfully  
 - Student can view feedback immediately  
 
 
 ### Profile Management
-**Acceptance Criteria:**
 - User updates profile information  
 - Changes are saved successfully  
 - Updated data is reflected immediately  
 
 
 ### Admin User Management
-**Acceptance Criteria:**
 - Admin creates a new user account  
 - Admin edits user information  
 - Admin deletes user account  
 - Changes are applied immediately  
 
 
-### Dashboard & Statistics
-**Acceptance Criteria:**
-- Data is displayed correctly  
-- Information updates in real time  
-
-
 ### Activity Log
-**Acceptance Criteria:**
 - System records user actions  
 - Each log includes user, action, and timestamp  
-- Admin can view and filter logs  
+- Admin can view and filter logs
+
+### Dashboard Performance  
+- User logs into the systems.
+- User navigates the dashboard.
+- System loads the dashboard within 3 seconds.
+- All components of the dashboard are visible after loading.
+
+### Role-based Access Control 
+- User logs in with an assigned role.
+- User accesses permitted features and data successfully.
+- User attempts to access restricted data.
+- System denies access to unauthorized data.
+- Appropriate message is displayed for restricted access
+
+
+### Usability – Responsiveness
+- User performs an action in the system.
+- System saves the action without requiring a manual page refresh.
+- Updated information appears automatically on the screen.
+- Saved data remains available when the page is reopened.
+
+### Auto-Save Functionality
+- User opens the system on a desktop device.
+- User opens the system on a tablet device.
+- User opens the system on a mobile device.
+- Pages display correctly on each screen size.
+- Navigation and main functions remain usable on all supported devices.
 
