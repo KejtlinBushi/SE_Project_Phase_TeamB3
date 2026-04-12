@@ -157,22 +157,23 @@ Agile is used as the development model because it supports an iterative and flex
 1. The system should load the dashboard within 3 seconds under normal conditions.
 2. Notifications should appear within 5 seconds after the triggering actions.
 3. The system should require authentication for all users.
-4. The system should support at least 100 users without significant degradation in response time.
-5. The system should ensure that users can access only data permitted by their role.
-6. The system should enforce secure password rules such as the minimum length required or the complexity of the password.
-7. The system should be available at least 97% of the time excluding scheduled maintenance.
-8. The system shall maintain data consistency so that feedback, statuses, deadlines, and messages are saved correctly even in case of temporary interruptions.
-9. The user interface should be simple so the students, supervisors and administrators can navigate the system with minimal training.
-10. The system should provide clear error messages whenever an action fails.
-11. The system should be responsive in order to be used on tablet, desktop and mobile devices.
-12. The system should be able to support an increasing number of students ans supervisors.
-13. Changes to one module should not negatively affect unrelated modules.
-14. The system should make important information and notifications easy to identify.
-15. The system should maintain data consistency including file submissions, feedback, messages are saved correctly.
-16. The system should limit the size of the uploaded files.
-17. The system should save user actions without requiring the user to refresh the page.
-18. The system should perform automatic data backups at regular intervals to prevent data loss.
-19. The system should log important user actions and system events for monitoring and auditing purposes.
+4. The system should respond to user interactions such as button clicks or form submissions within 2 seconds.
+5. The system should support at least 100 users without significant degradation in response time.
+6. The system should ensure that users can access only data permitted by their role.
+7. The system should enforce secure password rules such as the minimum length required or the complexity of the password.
+8. The system should be available at least 97% of the time excluding scheduled maintenance.
+9. The system shall maintain data consistency so that feedback, statuses, deadlines, and messages are saved correctly even in case of temporary interruptions.
+10. The user interface should be simple so the students, supervisors and administrators can navigate the system with minimal training.
+11. The system should provide clear error messages whenever an action fails.
+12. The system should be responsive in order to be used on tablet, desktop and mobile devices.
+13. The system should be able to support an increasing number of students and supervisors.
+14. Changes to one module should not negatively affect unrelated modules.
+15. The system should make important information and notifications easy to identify.
+16. The system should maintain data consistency including file submissions, feedback, messages are saved correctly.
+17. The system should limit the size of the uploaded files.
+18. The system should save user actions without requiring the user to refresh the page.
+19. The system should perform automatic data backups at regular intervals to prevent data loss.
+20. The system should log important user actions and system events for monitoring and auditing purposes.
 
 
 ## b. Acceptance Criteria
@@ -211,8 +212,8 @@ The Thesis Progress Tracker follows a three-tier architecture consisting of a us
 
 | Tier         | Component          | Responsibility                                                                 |
 |--------------|--------------------|--------------------------------------------------------------------------------|
-| Presentation | Frontend (PHP)     | Generates and displays the interface for all three user roles                  |
-| Application  | Backend (Python)   | Processes requests, enforces rules, manages files and notifications            |
+| Presentation | Frontend: HTML/CSS | Generates and displays the interface for all three user roles                  |
+| Application  | Backend:Python/PHP | Processes requests, enforces rules, manages files and notifications            |
 | Data         | Database (MySQL)   | Stores all persistent system data                                              |
 
 ## b) Database Model
@@ -235,8 +236,8 @@ The following languages and technologies are used for the implementation of the 
 
 | Category | Technology | Purpose                                                                 |
 |----------|------------|-------------------------------------------------------------------------|
-| Frontend | PHP        | Used to build the user interface pages that are served to and displayed in the user's browser for all three roles. |
-| Backend  | Python     | Used to implement the server-side logic, handle requests, manage file uploads, and enforce business rules. |
+| Frontend | HTML/CSS   | Used to build the user interface pages that are served to and displayed in the user's browser for all three roles. |
+| Backend  | Python/PHP | Used to implement the server-side logic, handle requests, manage file uploads, and enforce business rules. |
 | Database | SQL        | Used to store and manage all system data including accounts, submissions, messages, deadlines, and notifications. |
 
 ## d) User Interface Design
