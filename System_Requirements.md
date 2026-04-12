@@ -73,75 +73,104 @@ Agile is used as the development model because it supports an iterative and flex
 30. The Administrator can view and filter the full activity log by user, role, action type, or date range, enabling audit and oversight of all system activity.
 
 ## b. Acceptance Criteria for Functional Requirements
-### User Login
-- User enters a valid email and password  
-- System verifies credentials  
-- User is redirected to the dashboard after login  
-- Error message is shown for invalid credentials  
-- Account is locked after multiple failed attempts  
 
 
-### User Registration
-- User enters full name, email, password, and role  
-- System checks if email is unique  
-- Account is created successfully  
-- Confirmation message is displayed  
-- Error message is shown if email already exists  
+
+### Student / Supervisor / Administrator Login
+**Acceptance Criteria:**
+- Student, Supervisor, or Administrator enters a registered email and correct password  
+- System validates credentials against stored user records  
+- System redirects the authenticated role to the corresponding dashboard (Student Dashboard / Supervisor Dashboard / Admin Dashboard)  
+- System displays an error message if credentials are incorrect  
+- System locks the account after 5 consecutive failed login attempts  
 
 
-### Upload Thesis Document
-- User selects a file to upload  
-- System accepts only PDF format  
-- File is uploaded successfully  
-- Error message is shown for invalid file type  
-- Uploaded file is saved in the system  
+
+### Student Account Creation (Admin-Controlled)
+**Acceptance Criteria:**
+- Administrator enters full name, email, temporary password, and assigns role = Student  
+- System verifies that the email is unique in the database  
+- System creates the Student account successfully  
+- System sends a notification/email prompting password change on first login  
+- System displays an error if the email already exists  
 
 
-### Submit Thesis Version
-- User submits a new version of the thesis  
-- System stores the submission as a new version  
-- Previous versions remain unchanged  
-- Submission timestamp is recorded  
+
+### Upload Thesis Document (Student)
+**Acceptance Criteria:**
+- Student selects a file from local device  
+- System accepts only files with `.pdf` extension  
+- System rejects non-PDF files with a clear error message  
+- System uploads and stores the file successfully  
+- Uploaded file is linked to the correct Student account  
 
 
-### Messaging System
-- User sends a message to another user  
-- Message is delivered successfully  
-- Message appears in conversation history  
-- User can attach a PDF file  
-- Error is shown if file exceeds allowed size  
+
+### Submit Thesis Version (Student)
+**Acceptance Criteria:**
+- Student submits a new version of the thesis document  
+- System stores the submission as a new version (without overwriting previous versions)  
+- System assigns a version number automatically  
+- System records submission date and time  
+- Submission appears immediately in the Student submission list  
 
 
-### Deadlines Management
-- Supervisor creates a deadline  
-- Deadline is visible to assigned students  
-- Deadline shows title and due date  
-- System indicates if deadline has passed  
+
+### Messaging System (Student–Supervisor Communication)
+**Acceptance Criteria:**
+- Student or Supervisor sends a text message to the assigned counterpart  
+- Message is delivered and stored in the system database  
+- Message appears in the conversation history in chronological order  
+- System allows attachment of one PDF file (≤ 10MB)  
+- System rejects files that are not PDF or exceed the size limit  
 
 
-### Feedback System
-- Supervisor writes feedback on submission  
-- Feedback is saved successfully  
-- Student can view feedback immediately  
+
+### Deadlines Management (Supervisor)
+**Acceptance Criteria:**
+- Supervisor creates a deadline with title and due date  
+- Deadline is assigned to selected students  
+- Deadline appears in each assigned Student dashboard  
+- System visually marks deadlines as "Passed" after the due date  
+- Any update triggers a notification to affected students  
 
 
-### Profile Management
-- User updates profile information  
-- Changes are saved successfully  
-- Updated data is reflected immediately  
+
+### Feedback System (Supervisor)
+**Acceptance Criteria:**
+- Supervisor selects a student submission  
+- Supervisor writes and saves a feedback comment  
+- System stores feedback linked to the specific submission version  
+- Student can view feedback immediately after it is saved  
+- Supervisor can update submission status (Approved / Rejected)  
 
 
-### Admin User Management
-- Admin creates a new user account  
-- Admin edits user information  
-- Admin deletes user account  
-- Changes are applied immediately  
+
+### Profile Management (All Roles)
+**Acceptance Criteria:**
+- Student, Supervisor, or Administrator updates profile details (name, password, photo)  
+- System validates input data (e.g., password rules)  
+- Changes are saved successfully in the database  
+- Updated information is reflected immediately in the system  
 
 
-### Activity Log
-- System records user actions  
-- Each log includes user, action, and timestamp  
-- Admin can view and filter logs
+
+### Admin User Management (Administrator)
+**Acceptance Criteria:**
+- Administrator creates, edits, or deletes user accounts  
+- System applies changes instantly across the system  
+- Deleted accounts are anonymized (data preserved for audit purposes)  
+- System logs all admin actions with timestamp  
+- Users receive notifications for any account changes  
+
+
+
+### Activity Log (System Monitoring)
+**Acceptance Criteria:**
+- System records every critical action (login, submission, feedback, message, etc.)  
+- Each log entry includes: actor (Student / Supervisor / Administrator), action type, and timestamp  
+- Administrator can filter logs by user, role, or date  
+
 
 
 ## 4. Non-Functional Requirements  
