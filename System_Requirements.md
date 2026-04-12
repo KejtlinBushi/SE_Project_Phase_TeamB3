@@ -200,32 +200,35 @@ Agile is used as the development model because it supports an iterative and flex
 ## a) Architecture
 The Thesis Progress Tracker follows a three-tier architecture consisting of a user interface, a backend and a database. The frontend is built using PHP and runs on the web server, generating the pages that users see in their browser. It sends requests to the backend, which is also developed using Python. The backend processes all requests, enforces role-based access control, handles file uploads, and communicates with the database. The database built with SQL stores all persistent data including user accounts, thesis submissions, feedback, messages, deadlines, and notifications. 
 
-Tier          	Component	              Responsibility
-Presentation    Frontend (PHP)        	Generates and displays the interface for all three user roles
-Application   	Backend (Python)       	Processes requests, enforces rules, manages files and notifications
-Data          	Database (MySQL)	      Stores all persistent system data
+| Tier         | Component          | Responsibility                                                                 |
+|--------------|--------------------|--------------------------------------------------------------------------------|
+| Presentation | Frontend (PHP)     | Generates and displays the interface for all three user roles                  |
+| Application  | Backend (Python)   | Processes requests, enforces rules, manages files and notifications            |
+| Data         | Database (MySQL)   | Stores all persistent system data                                              |
 
 ## b) Database Model
 The system uses a relational database with nine tables. There is no shared Users table each role has its own dedicated table that stores identity and login credentials directly. The table below describes the function of each table in the system.
 
-Table          	Function
-Students       	Stores the identity and login credentials of all student users. Each student is linked to an assigned supervisor.
-Supervisors   	Stores the identity and login credentials of all supervisor (professor) users. A supervisor can be linked to multiple students.
-Administrators	Stores the identity and login credentials of administrator users who manage user accounts, assignments, and deadlines.
-Submissions   	Records every thesis document submitted by a student. Tracks the version number, submission date, and current review status (Pending, Approved, or Rejected).
-Feedback      	Stores feedback comments written by a supervisor for a specific submission. Each record is permanently linked to the submission it addresses.
-Messages      	Stores all chat messages exchanged between students and supervisors, including any attached PDF files.
-Deadlines     	Stores academic deadlines created by a supervisor. All assigned students can view the deadlines in this table.
-Notifications  	Stores in-app notifications sent to users when relevant events occur, such as new feedback, a deadline update, or a new message.
-Meetings      	Records meeting appointments scheduled between a supervisor and a student, including date, time, and notes.
+| Table           | Function                                                                 |
+|-----------------|--------------------------------------------------------------------------|
+| Students        | Stores the identity and login credentials of all student users. Each student is linked to an assigned supervisor. |
+| Supervisors     | Stores the identity and login credentials of all supervisor (professor) users. A supervisor can be linked to multiple students. |
+| Administrators  | Stores the identity and login credentials of administrator users who manage user accounts, assignments, and deadlines. |
+| Submissions     | Records every thesis document submitted by a student. Tracks the version number, submission date, and current review status (Pending, Approved, or Rejected). |
+| Feedback        | Stores feedback comments written by a supervisor for a specific submission. Each record is permanently linked to the submission it addresses. |
+| Messages        | Stores all chat messages exchanged between students and supervisors, including any attached PDF files. |
+| Deadlines       | Stores academic deadlines created by a supervisor. All assigned students can view the deadlines in this table. |
+| Notifications   | Stores in-app notifications sent to users when relevant events occur, such as new feedback, a deadline update, or a new message. |
+| Meetings        | Records meeting appointments scheduled between a supervisor and a student, including date, time, and notes. |
 
 ## c) Technologies Used
 The following languages and technologies are used for the implementation of the system:
 
-Category	         Technology       	Purpose
-Frontend           PHP              	Used to build the user interface pages that are served to and displayed in the user's browser for all three roles.
-Backend            Python           	Used to implement the server-side logic, handle requests, manage file uploads, and enforce business rules.
-Database           SQL              	Used to store and manage all system data including accounts, submissions, messages, deadlines, and notifications.
+| Category | Technology | Purpose                                                                 |
+|----------|------------|-------------------------------------------------------------------------|
+| Frontend | PHP        | Used to build the user interface pages that are served to and displayed in the user's browser for all three roles. |
+| Backend  | Python     | Used to implement the server-side logic, handle requests, manage file uploads, and enforce business rules. |
+| Database | SQL        | Used to store and manage all system data including accounts, submissions, messages, deadlines, and notifications. |
 
 ## d) User Interface Design
 The system provides a login page where users enter their email and password and select their role (Student, Supervisor, or Administrator) to access the system. 
