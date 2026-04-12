@@ -39,7 +39,7 @@ Agile is used as the development model because it supports an iterative and flex
 ## 3. Functional Requirements
 ### Student
 1. The Student registers an account by providing a full name, a unique email address, a password, and selecting the Student role; the system rejects registration if the email is already in use.  
-2. The Student uploads their thesis document in PDF format only the system rejects any non-PDF file before saving and displays an error message specifying the accepted format.  
+2. The Student uploads their thesis document; the system stores the file and displays an error message for unsupported formats. 
 3. The Student can submit an updated version of their thesis multiple times each new submission is stored as a separate version without overwriting any previous submission.  
 4. The Student can view a chronological list of all their thesis submissions, showing for each entry the version number, upload date and time, and current review status.  
 5. The Student can see the review status of each submission  Pending, Approved, or Rejected which updates automatically when the Supervisor takes action.  
@@ -50,18 +50,18 @@ Agile is used as the development model because it supports an iterative and flex
 
 ### Supervisor (Professor)
 11. The Supervisor can view a list of all students assigned to them by the Administrator, displaying each student's full name, thesis title, date of last submission, and current submission status.  
-12. The Supervisor can open and read any PDF submission from their assigned students directly within the system browser view, without downloading the file.  
+12. The Supervisor can open and read any PDF submission from their assigned students within the system.  
 13. The Supervisor can write a feedback comment on any student submission and save it the comment becomes immediately visible to the Student upon saving.  
 14. The Supervisor can set the review status of a student submission to Approved or Rejected; the decision is recorded with the Supervisor's identity and the timestamp of the action.  
 15. The Supervisor can assign a deadline to one or more of their assigned students by specifying a title, a due date, and an optional description of what must be completed.  
-16. The Supervisor can edit or remove a deadline they previously assigned; any change triggers an immediate in-app notification to all affected students.  
+16. The Supervisor can edit or remove a deadline they previously assigned; any change triggers an in-app notification to all affected students.
 17. The Supervisor can send text messages to any of their assigned students and can attach a single PDF file per message; the system rejects attachments that are not PDF or exceed 10 MB.  
 18. The Supervisor receives an in-app notification whenever a student submits a new thesis version, so that no submission goes unnoticed.  
-19. The Supervisor can view the full message history with each assigned student in chronological order, with the 50 most recent messages loaded on first open and older messages accessible by scrolling up.  
+19. The Supervisor can view the full message history with each assigned student in chronological order.
 20. The Supervisor can update their full name, profile photo, and password from their account settings page at any time without administrator involvement.  
 
 ### Administrator (Admin)
-21. The Administrator can create a new user account by providing a full name, email address, temporary password, and role (Student or Supervisor) the system sends a welcome email prompting the user to change their password on first login.  
+21. The Administrator can create a new user account by providing a full name, email address, temporary password, and role (Student or Supervisor).
 22. The Administrator can edit the full name, email address, and role of any existing user account; changes take effect immediately and the affected user receives an in-app notification.  
 23. The Administrator can delete a user account upon deletion all associated thesis submissions, feedback, and messages are anonymised rather than permanently erased, preserving the audit trail.  
 24. The Administrator can assign a Supervisor to one or more Students using searchable dropdown lists the assignment is stored with the date it was made and can be changed or revoked at any time.  
