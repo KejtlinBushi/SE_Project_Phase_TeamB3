@@ -195,3 +195,54 @@ Agile is used as the development model because it supports an iterative and flex
 - Pages display correctly on each screen size.
 - Navigation and main functions remain usable on all supported devices.
 
+## 5. Application Specifications
+
+## a) Architecture
+The Thesis Progress Tracker follows a three-tier architecture consisting of a user interface, a backend and a database. The frontend is built using PHP and runs on the web server, generating the pages that users see in their browser. It sends requests to the backend, which is also developed using Python. The backend processes all requests, enforces role-based access control, handles file uploads, and communicates with the database. The database built with SQL stores all persistent data including user accounts, thesis submissions, feedback, messages, deadlines, and notifications. 
+
+Tier          	Component	              Responsibility
+Presentation    Frontend (PHP)        	Generates and displays the interface for all three user roles
+Application   	Backend (Python)       	Processes requests, enforces rules, manages files and notifications
+Data          	Database (MySQL)	      Stores all persistent system data
+
+## b) Database Model
+The system uses a relational database with nine tables. There is no shared Users table each role has its own dedicated table that stores identity and login credentials directly. The table below describes the function of each table in the system.
+
+Table          	Function
+Students       	Stores the identity and login credentials of all student users. Each student is linked to an assigned supervisor.
+Supervisors   	Stores the identity and login credentials of all supervisor (professor) users. A supervisor can be linked to multiple students.
+Administrators	Stores the identity and login credentials of administrator users who manage user accounts, assignments, and deadlines.
+Submissions   	Records every thesis document submitted by a student. Tracks the version number, submission date, and current review status (Pending, Approved, or Rejected).
+Feedback      	Stores feedback comments written by a supervisor for a specific submission. Each record is permanently linked to the submission it addresses.
+Messages      	Stores all chat messages exchanged between students and supervisors, including any attached PDF files.
+Deadlines     	Stores academic deadlines created by a supervisor. All assigned students can view the deadlines in this table.
+Notifications  	Stores in-app notifications sent to users when relevant events occur, such as new feedback, a deadline update, or a new message.
+Meetings      	Records meeting appointments scheduled between a supervisor and a student, including date, time, and notes.
+
+## c) Technologies Used
+The following languages and technologies are used for the implementation of the system:
+
+Category	         Technology       	Purpose
+Frontend           PHP              	Used to build the user interface pages that are served to and displayed in the user's browser for all three roles.
+Backend            Python           	Used to implement the server-side logic, handle requests, manage file uploads, and enforce business rules.
+Database           SQL              	Used to store and manage all system data including accounts, submissions, messages, deadlines, and notifications.
+
+## d) User Interface Design
+The system provides a login page where users enter their email and password and select their role (Student, Supervisor, or Administrator) to access the system. 
+ The Student interface includes a dashboard with sections for viewing submission status, upcoming deadlines, supervisor feedback, and a chat-style messaging area for communicating with the assigned supervisor.
+ The Supervisor interface lists all assigned students and allows the supervisor to open each student's submissions, provide written feedback, approve or reject work, and schedule meetings.
+ The Administrator interface provides a control panel for managing user accounts, assigning supervisors to students, setting deadlines, and monitoring system activity. All pages share a consistent navigation bar displaying the user's name and role, a notification indicator for unread updates, and a logout button. The design is kept simple and clear so that all users can navigate the system with minimal training.
+
+## e) Security Measures
+
+### Authentication
+The system uses a single-phase authentication process. To access the system, users must enter their registered email address and password on the login page and select their role. The system verifies the credentials against the stored records and grants access only if they are correct. If the credentials are invalid, an error message is displayed. Sessions are invalidated automatically after a period of inactivity, requiring the user to log in again to continue.
+
+### Password Encryption
+All passwords are encrypted using the bcrypt hashing algorithm before being stored in the database. Bcrypt applies a unique salt to each password before hashing, which means that two users with identical passwords will have different stored values. This protects user credentials in the event of a database breach, as the original plaintext passwords cannot be recovered from the stored hashes.
+
+### Role-Based Access Control 
+The system enforces role-based access control to ensure that each user can only access the features and data permitted by their role. Students may only view their own submissions, deadlines, feedback, and messages. Supervisors may only access the submissions and communications of their directly assigned students. Administrators are the only role permitted to manage user accounts, assign supervisors to students, and access the activity log. Any request to access a resource outside a user's permitted role is rejected by the server.
+
+### Database Security
+The database is protected through several mechanisms. The system uses parameterised queries, which prevent SQL injection attacks by ensuring that user input is never directly included in database queries. Each role table enforces a UNIQUE constraint on the email field, preventing duplicate accounts at the database level. Uploaded thesis files are stored in a protected server directory that is not publicly accessible via URL. The database connection uses a dedicated account with the minimum required permissions, so that even if the application layer is compromised, critical database operations such as dropping tables remain inaccessible.
