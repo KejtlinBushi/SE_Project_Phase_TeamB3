@@ -18,6 +18,13 @@ from ui import (BG_MAIN, BG_WHITE, BLUE, BLUE2, GREEN, GOLD_TILE, ORANGE,
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "uploads")
 
+# ── nice accent colours used in the Messages page ──────────────────────────
+_BTN_SEND      = "#2e8b57"   # dark green
+_BTN_SEND_HVR  = "#1a4d2e"   # darker green on hover
+_BTN_ATTACH    = "#B60B0B"   # sky blue
+_BTN_LOAD      = "#F9F14A"   # violet – stands out from the blue sidebar
+_BTN_LOAD_HVR  = "#D0D928"
+
 
 def create_notification(user_role, user_id, notif_type, title, message, ref_id=None):
     try:
@@ -112,7 +119,7 @@ class SupervisorReviews(tk.Frame):
         style_btn(rb, DANGER, WHITE)
         rb.pack(side="left", padx=(0, 6))
         ob = tk.Button(bf, text="📄 Open File", command=self._open_selected)
-        style_btn(ob, BLUE, WHITE)
+        style_btn(ob, "#2e8b57", WHITE)
         ob.pack(side="left")
         self._load(sid)
 
@@ -216,7 +223,7 @@ class SupervisorDeadlines(tk.Frame):
                            font=("Segoe UI", 10)).pack(side="left", padx=8)
             self.student_vars[s["student_id"]] = v
         cb = tk.Button(cf, text="Create Deadline", command=self._create)
-        style_btn(cb)
+        style_btn(cb, "#2e8b57", WHITE)
         cb.pack(anchor="w", pady=(10, 0))
 
         lf = card_frame(self, padx=0, pady=0)
@@ -298,7 +305,7 @@ class SupervisorMilestones(tk.Frame):
             style_entry(e)
             e.pack(fill="x", ipady=5, pady=(4, 0))
         tb = tk.Button(cf, text="Create Milestone", command=self._create)
-        style_btn(tb)
+        style_btn(tb, "#2e8b57", WHITE)
         tb.pack(anchor="w", pady=(10, 0))
 
         lf = card_frame(self, padx=0, pady=0)
@@ -380,7 +387,7 @@ class SupervisorMeetings(tk.Frame):
             e.pack(fill="x", ipady=5, pady=(4, 0))
             self._fvars[key] = v
         tb = tk.Button(cf, text="Schedule Meeting", command=self._schedule)
-        style_btn(tb)
+        style_btn(tb, "#2e8b57", WHITE)
         tb.pack(anchor="w", pady=(10, 0))
 
         lf = card_frame(self, padx=0, pady=0)
@@ -389,7 +396,6 @@ class SupervisorMeetings(tk.Frame):
                  font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
         tk.Frame(lf, bg=BORDER, height=1).pack(fill="x")
 
-        # Scrollable meetings treeview
         tree_frame = tk.Frame(lf, bg=BG_WHITE)
         tree_frame.pack(fill="both", expand=True, padx=8, pady=(8, 0))
         cols = ("Student", "Title", "Date", "Time", "Status", "Location")
@@ -463,7 +469,6 @@ class SupervisorMeetings(tk.Frame):
         if not mid:
             return
         query("UPDATE meetings SET status=%s WHERE meeting_id=%s", (status, mid))
-        # Notify student
         create_notification("student", st_id, "meeting",
                             f"Meeting {status}",
                             f"Your meeting was {status.lower()} by {SESSION['name']}")
@@ -477,6 +482,19 @@ class SupervisorMessages(tk.Frame):
         page_header(self, "Messages", "Chat with your students")
         self._build()
 
+    # ── helper: create a coloured button with hover effect ──────────────
+    @staticmethod
+    def _make_btn(parent, text, command, bg, hover_bg, fg=WHITE):
+        b = tk.Button(parent, text=text, command=command,
+                      bg=bg, fg=fg, relief="flat",
+                      font=("Segoe UI", 10, "bold"),
+                      padx=14, pady=6, cursor="hand2",
+                      activebackground=hover_bg, activeforeground=fg,
+                      bd=0)
+        b.bind("<Enter>", lambda _: b.config(bg=hover_bg))
+        b.bind("<Leave>", lambda _: b.config(bg=bg))
+        return b
+
     def _build(self):
         sid      = SESSION["user_id"]
         students = query("SELECT student_id, full_name FROM students WHERE supervisor_id=%s",
@@ -486,22 +504,29 @@ class SupervisorMessages(tk.Frame):
                      bg=BG_MAIN, fg=MUTED, font=("Segoe UI", 12)).pack(pady=40)
             return
 
+        # ── top bar ──────────────────────────────────────────────────────
         top = tk.Frame(self, bg=BG_MAIN)
         top.pack(fill="x", padx=20, pady=(8, 4))
         tk.Label(top, text="Select student:", bg=BG_MAIN, fg=DARK,
                  font=("Segoe UI", 10)).pack(side="left", padx=(0, 8))
+
         self._stu_map = {s["full_name"]: s["student_id"] for s in students}
         self.stu_var  = tk.StringVar(value=students[0]["full_name"])
         cb = ttk.Combobox(top, textvariable=self.stu_var,
                           values=list(self._stu_map.keys()),
                           state="readonly", width=30)
         cb.pack(side="left")
-        tk.Button(top, text="Load Chat", command=self._load_chat,
-                  bg=BLUE, fg=WHITE, relief="flat",
-                  font=("Segoe UI", 10), padx=10).pack(side="left", padx=8)
+
+        # Violet "Load Chat" button – eye-catching, different from blue sidebar
+        load_btn = self._make_btn(top, "💬  Load Chat", self._load_chat,
+                                  bg="#7C3AED", hover_bg="#6D28D9")
+        load_btn.pack(side="left", padx=8)
 
         self.chat_area = tk.Frame(self, bg=BG_MAIN)
         self.chat_area.pack(fill="both", expand=True, padx=20)
+
+        # Auto-load whenever selection changes + on first open
+        cb.bind("<<ComboboxSelected>>", lambda _: self._load_chat())
         self._load_chat()
 
     def _load_chat(self):
@@ -526,23 +551,30 @@ class SupervisorMessages(tk.Frame):
         sb.pack(side="right", fill="y")
         self._refresh_msgs(sup_id, st_id)
 
-        inp = tk.Frame(self.chat_area, bg=BG_MAIN, pady=8)
+        # ── input bar ────────────────────────────────────────────────────
+        inp = tk.Frame(self.chat_area, bg="#F1F5F9", pady=8)
         inp.pack(fill="x")
-        att = tk.Button(inp, text="📎",
-                        command=lambda: self._attach_send(sup_id, st_id),
-                        bg="#ecf0f1", fg=DARK, relief="flat",
-                        font=("Segoe UI", 12), padx=8)
+
+        # 📎 Attach – sky blue
+        att = self._make_btn(inp, "📎", lambda: self._attach_send(sup_id, st_id),
+                             bg=_BTN_ATTACH, hover_bg="#0284C7")
         att.pack(side="left", padx=(0, 6))
+
+        # Text entry
         self.msg_var = tk.StringVar()
-        me = tk.Entry(inp, textvariable=self.msg_var)
-        style_entry(me)
-        me.pack(side="left", fill="x", expand=True, ipady=7, padx=(0, 8))
+        me = tk.Entry(inp, textvariable=self.msg_var,
+                      font=("Segoe UI", 10), relief="flat",
+                      bg=WHITE, fg=DARK,
+                      highlightthickness=1, highlightcolor="#2563EB",
+                      highlightbackground="#CBD5E1")
+        me.pack(side="left", fill="x", expand=True, ipady=8, padx=(0, 8))
         me.bind("<Return>", lambda e: self._send(sup_id, st_id))
-        tk.Button(inp, text="Send",
-                  command=lambda: self._send(sup_id, st_id),
-                  bg=BLUE, fg=WHITE, relief="flat",
-                  font=("Segoe UI", 10, "bold"),
-                  padx=12, pady=6).pack(side="right")
+
+        # ➤ Send – vivid blue
+        send_btn = self._make_btn(inp, "➤  Send",
+                                  lambda: self._send(sup_id, st_id),
+                                  bg=_BTN_SEND, hover_bg=_BTN_SEND_HVR)
+        send_btn.pack(side="right")
 
     def _refresh_msgs(self, sup_id, st_id):
         for w in self.msg_frame.winfo_children():
@@ -554,9 +586,9 @@ class SupervisorMessages(tk.Frame):
                      (sup_id, st_id, st_id, sup_id)) or []
         for r in rows:
             is_me = r["sender_role"] == "supervisor"
-            bg    = BLUE if is_me else "#ecf0f1"
-            fg    = WHITE if is_me else DARK
-            side  = "right" if is_me else "left"
+            bg    = _BTN_SEND if is_me else "#E2E8F0"
+            fg    = WHITE     if is_me else DARK
+            side  = "right"   if is_me else "left"
             bf = tk.Frame(self.msg_frame, bg=BG_WHITE)
             bf.pack(fill="x", padx=10, pady=3, anchor="e" if is_me else "w")
             tk.Label(bf, text=r["body"], bg=bg, fg=fg,
@@ -567,7 +599,7 @@ class SupervisorMessages(tk.Frame):
                 aname = r.get("attachment_name", "Attachment")
                 tk.Button(bf, text=f"📄 {aname}",
                           command=lambda p=full: open_file(p),
-                          bg="#dce1e7", fg=BLUE, relief="flat",
+                          bg="#DBEAFE", fg=_BTN_SEND, relief="flat",
                           font=("Segoe UI", 9), cursor="hand2",
                           padx=6, pady=3).pack(side=side, pady=2)
             tk.Label(bf, text=str(r["sent_at"])[:16],
@@ -680,7 +712,7 @@ class SupervisorProfile(tk.Frame):
             e.pack(fill="x", ipady=6, pady=(4, 12))
             self.pvars[key] = v
         tk.Button(pf, text="Save Changes", command=self._save,
-                  bg=BLUE, fg=WHITE, relief="flat",
+                  bg="#2e8b57", fg=WHITE, relief="flat",
                   font=("Segoe UI", 10, "bold"),
                   padx=12, pady=6).pack(anchor="w")
 

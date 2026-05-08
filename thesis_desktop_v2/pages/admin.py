@@ -28,6 +28,7 @@ def create_notification(user_role, user_id, notif_type, title, message):
 class AdminDashboard(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
+        self._parent = parent
         page_header(self, "Admin Dashboard", "System overview")
         try:
             students   = query("SELECT COUNT(*) AS c FROM students",     one=True)
@@ -42,19 +43,47 @@ class AdminDashboard(tk.Frame):
 
         grid = tk.Frame(self, bg=BG_MAIN)
         grid.pack(fill="x", padx=20, pady=12)
-        for i, (icon, title, val, color) in enumerate([
-            ("👥", "Students",    str(students["c"]),   BLUE),
-            ("🎓", "Supervisors", str(sups["c"]),       GREEN),
-            ("📄", "Submissions", str(subs["c"]),       GOLD_TILE),
-            ("📅", "Meetings",    str(meetings["c"]),   ORANGE),
-            ("🎯", "Milestones",  str(milestones["c"]), "#8e44ad"),
-        ]):
-            f = tk.Frame(grid, bg=color, width=150, height=90)
+
+        cards = [
+            ("👥", "Students",    str(students["c"]),   BLUE,      "users"),
+            ("🎓", "Supervisors", str(sups["c"]),       GREEN,     "users"),
+            ("📄", "Submissions", str(subs["c"]),       GOLD_TILE, None),
+            ("📅", "Meetings",    str(meetings["c"]),   ORANGE,    None),
+            ("🎯", "Milestones",  str(milestones["c"]), "#8e44ad", None),
+        ]
+
+        for i, (icon, title, val, color, nav_page) in enumerate(cards):
+            f = tk.Frame(grid, bg=color, width=150, height=90,
+                         cursor="hand2" if nav_page else "arrow")
             f.grid(row=0, column=i, padx=5, pady=5, sticky="nsew")
             f.pack_propagate(False)
-            tk.Label(f, text=icon, bg=color, fg=WHITE, font=("Segoe UI", 18)).pack(pady=(10, 0))
-            tk.Label(f, text=val,  bg=color, fg=WHITE, font=("Segoe UI", 14, "bold")).pack()
-            tk.Label(f, text=title,bg=color, fg=WHITE, font=("Segoe UI", 8)).pack()
+
+            icon_lbl  = tk.Label(f, text=icon,  bg=color, fg=WHITE, font=("Segoe UI", 18))
+            val_lbl   = tk.Label(f, text=val,   bg=color, fg=WHITE, font=("Segoe UI", 14, "bold"))
+            title_lbl = tk.Label(f, text=title, bg=color, fg=WHITE, font=("Segoe UI", 8))
+            icon_lbl.pack(pady=(10, 0))
+            val_lbl.pack()
+            title_lbl.pack()
+
+            if nav_page:
+                dark = self._darken(color)
+                for widget in (f, icon_lbl, val_lbl, title_lbl):
+                    widget.bind("<Enter>",
+                        lambda e, w=f, d=dark, c=color: self._on_hover(w, d))
+                    widget.bind("<Leave>",
+                        lambda e, w=f, d=dark, c=color: self._on_leave(w, c))
+                    widget.bind("<Button-1>",
+                        lambda e, p=nav_page: self._navigate(p))
+
+                hint = tk.Label(f, text="→", bg=color, fg=WHITE,
+                                font=("Segoe UI", 9))
+                hint.place(relx=1.0, rely=1.0, anchor="se", x=-4, y=-3)
+                hint.bind("<Button-1>", lambda e, p=nav_page: self._navigate(p))
+                hint.bind("<Enter>",
+                    lambda e, w=f, d=dark: self._on_hover(w, d))
+                hint.bind("<Leave>",
+                    lambda e, w=f, c=color: self._on_leave(w, c))
+
             grid.columnconfigure(i, weight=1)
 
         af = card_frame(self, padx=0, pady=0)
@@ -73,6 +102,46 @@ class AdminDashboard(tk.Frame):
                 r["actor_role"], r["action_type"],
                 r["description"], str(r["logged_at"])[:16]))
 
+    @staticmethod
+    def _darken(hex_color):
+        try:
+            h = hex_color.lstrip("#")
+            r, g, b = (int(h[i:i+2], 16) for i in (0, 2, 4))
+            r = max(0, int(r * 0.82))
+            g = max(0, int(g * 0.82))
+            b = max(0, int(b * 0.82))
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except Exception:
+            return hex_color
+
+    @staticmethod
+    def _on_hover(frame, dark_color):
+        for child in frame.winfo_children():
+            try:
+                child.configure(bg=dark_color)
+            except Exception:
+                pass
+        frame.configure(bg=dark_color)
+
+    @staticmethod
+    def _on_leave(frame, orig_color):
+        for child in frame.winfo_children():
+            try:
+                child.configure(bg=orig_color)
+            except Exception:
+                pass
+        frame.configure(bg=orig_color)
+
+    def _navigate(self, page):
+        widget = self._parent
+        for _ in range(10):
+            if hasattr(widget, "_navigate"):
+                widget._navigate(page)
+                return
+            widget = getattr(widget, "master", None)
+            if widget is None:
+                break
+
 
 # ═══════════════════════════════════════════════════════════
 class AdminUsers(tk.Frame):
@@ -81,11 +150,13 @@ class AdminUsers(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
         page_header(self, "User Management", "Create, edit and delete users")
-        self.user_map = {}
+        self.user_map   = {}   # iid → (uid, role, name, email)
+        self._btn_map   = {}   # iid → delete Button widget
         self._build()
 
+    # ── layout ───────────────────────────────────────────────
     def _build(self):
-        # ── Top: create form ─────────────────────────────────
+        # ── Create form ──────────────────────────────────────
         cf = card_frame(self, padx=16, pady=14)
         cf.pack(fill="x", padx=20, pady=(12, 0))
         tk.Label(cf, text="Create New User", bg=BG_WHITE, fg=DARK,
@@ -115,19 +186,25 @@ class AdminUsers(tk.Frame):
                 self._uvars["role"] = v
 
         tk.Button(cf, text="+ Create User", command=self._create_user,
-                  bg=BLUE, fg=WHITE, relief="flat",
+                  bg="#2e8b57", fg=WHITE, relief="flat",
                   font=("Segoe UI", 10, "bold"),
                   padx=12, pady=5).pack(anchor="w", pady=(12, 0))
 
-        # ── Bottom: users table ───────────────────────────────
+        # ── Users table ───────────────────────────────────────
         uf = card_frame(self, padx=0, pady=0)
         uf.pack(fill="both", expand=True, padx=20, pady=12)
         tk.Label(uf, text="All Users", bg=BG_WHITE, fg=DARK,
                  font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
         tk.Frame(uf, bg=BORDER, height=1).pack(fill="x")
 
-        tree_f = tk.Frame(uf, bg=BG_WHITE)
-        tree_f.pack(fill="both", expand=True, padx=8, pady=(8, 0))
+        # ── Split pane: treeview left, delete buttons right ───
+        pane = tk.Frame(uf, bg=BG_WHITE)
+        pane.pack(fill="both", expand=True, padx=8, pady=(8, 0))
+
+        # Treeview
+        tree_f = tk.Frame(pane, bg=BG_WHITE)
+        tree_f.pack(side="left", fill="both", expand=True)
+
         cols = ("ID", "Name", "Email", "Role", "Created")
         self.tree = ttk.Treeview(tree_f, columns=cols, show="headings", height=9)
         style_treeview(self.tree, cols, [50, 160, 200, 90, 130])
@@ -136,7 +213,18 @@ class AdminUsers(tk.Frame):
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        # Action buttons
+        # Delete-buttons column (right of treeview)
+        self._del_col = tk.Frame(pane, bg=BG_WHITE, width=44)
+        self._del_col.pack(side="right", fill="y")
+        self._del_col.pack_propagate(False)
+
+        # Header label to align with treeview heading
+        tk.Label(self._del_col, text="Del", bg="#eaf0fb", fg=DARK,
+                 font=("Segoe UI", 9, "bold"),
+                 width=4, height=1,
+                 relief="flat").pack(fill="x")
+
+        # Bottom action bar
         bf = tk.Frame(uf, bg=BG_WHITE, pady=8)
         bf.pack(fill="x", padx=8, pady=(0, 8))
         tk.Button(bf, text="✎ Edit Selected",
@@ -144,27 +232,101 @@ class AdminUsers(tk.Frame):
                   bg=GOLD_TILE, fg=WHITE, relief="flat",
                   font=("Segoe UI", 10, "bold"),
                   padx=10, pady=4).pack(side="left", padx=(0, 6))
-        tk.Button(bf, text="✕ Delete Selected",
-                  command=self._delete_user,
-                  bg=DANGER, fg=WHITE, relief="flat",
-                  font=("Segoe UI", 10, "bold"),
-                  padx=10, pady=4).pack(side="left")
+
+        # Bind selection so delete buttons highlight row
+        self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
         self._load()
 
+    # ── data ─────────────────────────────────────────────────
     def _load(self):
+        # Clear tree
         for r in self.tree.get_children():
             self.tree.delete(r)
         self.user_map.clear()
+
+        # Clear old delete buttons
+        for btn in self._btn_map.values():
+            btn.destroy()
+        self._btn_map.clear()
+
         students = query("SELECT student_id AS id, full_name, email, 'student' AS role, created_at FROM students") or []
         sups     = query("SELECT supervisor_id AS id, full_name, email, 'supervisor' AS role, created_at FROM supervisors") or []
         admins   = query("SELECT admin_id AS id, full_name, email, 'admin' AS role, created_at FROM administrators") or []
-        for r in sorted(students + sups + admins,
-                        key=lambda x: x["created_at"], reverse=True):
+
+        all_users = sorted(students + sups + admins,
+                           key=lambda x: x["created_at"], reverse=True)
+
+        for r in all_users:
             iid = self.tree.insert("", "end", values=(
                 r["id"], r["full_name"], r["email"],
                 r["role"], str(r["created_at"])[:16]))
             self.user_map[iid] = (r["id"], r["role"], r["full_name"], r["email"])
+
+            # Red trash button per row
+            is_admin = r["role"] == "admin"
+            btn = tk.Button(
+                self._del_col,
+                text="🗑",
+                font=("Segoe UI", 13),
+                bg="#fff0f0" if not is_admin else "#f5f5f5",
+                fg="#c0392b" if not is_admin else "#aaaaaa",
+                activebackground="#ffd6d6",
+                activeforeground="#922b21",
+                relief="flat",
+                cursor="hand2" if not is_admin else "arrow",
+                width=3,
+                pady=3,
+                state="normal" if not is_admin else "disabled",
+                command=(lambda i=iid: self._delete_row(i)) if not is_admin else None
+            )
+            btn.pack(fill="x")
+
+            # Hover effect for non-admin
+            if not is_admin:
+                btn.bind("<Enter>", lambda e, b=btn: b.config(bg="#ffd6d6"))
+                btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#fff0f0"))
+
+            self._btn_map[iid] = btn
+
+        # Sync scroll between treeview and button column
+        self.tree.bind("<MouseWheel>", self._sync_scroll)
+
+    # ── keep buttons aligned when tree scrolls ───────────────
+    def _sync_scroll(self, event):
+        # Repack buttons in same order as visible tree rows
+        for btn in self._btn_map.values():
+            btn.pack_forget()
+        # Header stays
+        for child in self._del_col.winfo_children():
+            if isinstance(child, tk.Label):
+                child.pack(fill="x")
+                break
+        for iid in self.tree.get_children():
+            if iid in self._btn_map:
+                self._btn_map[iid].pack(fill="x")
+
+    def _on_select(self, event):
+        pass  # could highlight corresponding button if desired
+
+    # ── actions ──────────────────────────────────────────────
+    def _delete_row(self, iid):
+        info = self.user_map.get(iid)
+        if not info:
+            return
+        uid, role, name, _ = info
+        if role == "admin":
+            messagebox.showerror("Error", "Cannot delete admin accounts.")
+            return
+        if not messagebox.askyesno(
+                "Konfirmo fshirjen",
+                f"Je i sigurt që dëshiron të fshish:\n\n👤  {name}  ({role})\n\nKjo veprim nuk mund të kthehet!"):
+            return
+        tbl = "students" if role == "student" else "supervisors"
+        pk  = "student_id" if role == "student" else "supervisor_id"
+        query(f"DELETE FROM {tbl} WHERE {pk}=%s", (uid,))
+        messagebox.showinfo("U fshi", f"Përdoruesi '{name}' u fshi me sukses.")
+        self._load()
 
     def _create_user(self):
         name  = self._uvars["name"].get().strip()
@@ -321,8 +483,10 @@ class AdminAssignments(tk.Frame):
             ttk.Combobox(col, textvariable=var, values=vals,
                          state="readonly", width=30).pack(fill="x", pady=(4, 0))
 
-        ab = tk.Button(cf, text="Assign", command=self._assign)
-        style_btn(ab)
+        ab = tk.Button(cf, text="Assign", command=self._assign,
+                      bg="#2e8b57", fg=WHITE, relief="flat",
+                      font=("Segoe UI", 10, "bold"),
+                      padx=12, pady=5)
         ab.pack(anchor="w", pady=(12, 0))
 
         lf = card_frame(self, padx=0, pady=0)
@@ -498,7 +662,7 @@ class AdminProfile(tk.Frame):
             e.pack(fill="x", ipady=6, pady=(4, 12))
             self.pvars[key] = v
         tk.Button(pf, text="Save Changes", command=self._save,
-                  bg=BLUE, fg=WHITE, relief="flat",
+                  bg="#2e8b57", fg=WHITE, relief="flat",
                   font=("Segoe UI", 10, "bold"),
                   padx=12, pady=6).pack(anchor="w")
 
