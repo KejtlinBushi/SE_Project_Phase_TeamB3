@@ -489,7 +489,6 @@ class StudentSubmissions(tk.Frame):
                 "Delete Error",
                 f"Could not delete submission: {e}"
             )
-
     def _open_selected_feedback(self, event=None):
         submission = self._get_selected_submission()
 
@@ -507,14 +506,14 @@ class StudentSubmissions(tk.Frame):
         file_path = self._resolve_submission_file_path(submission)
         feedback_text = submission.get("feedback") or "No feedback has been provided yet."
 
-        header = tk.Frame(win, bg="#003B7A", height=90)
+        header = tk.Frame(win, bg="#1a5276", height=90)
         header.pack(fill="x")
         header.pack_propagate(False)
 
         tk.Label(
             header,
-            text="📄  THESIS SUBMISSION FEEDBACK",
-            bg="#003B7A",
+            text="📄 THESIS SUBMISSION FEEDBACK",
+            bg="#1a5276",
             fg=WHITE,
             font=("Segoe UI", 20, "bold")
         ).pack(side="left", padx=25)
@@ -524,11 +523,8 @@ class StudentSubmissions(tk.Frame):
             text="Open in Default App",
             command=lambda: open_file(file_path)
             if file_path and os.path.exists(file_path)
-            else messagebox.showerror(
-                "File Not Found",
-                "The thesis file could not be found."
-            ),
-            bg="#2F80ED",
+            else messagebox.showerror("File Not Found", "The thesis file could not be found."),
+            bg="#2980b9",
             fg=WHITE,
             relief="flat",
             font=("Segoe UI", 10, "bold"),
@@ -555,6 +551,22 @@ class StudentSubmissions(tk.Frame):
         )
         right.pack(side="right", fill="both", expand=True, padx=(10, 0))
 
+        tk.Button(
+            header,
+            text="Back to Submissions",
+            command=win.destroy,
+            bg="#7f8c8d",
+            fg=WHITE,
+            relief="flat",
+            font=("Segoe UI", 10, "bold"),
+            padx=18,
+            pady=8
+        ).pack(side="right", padx=(0, 10))
+        
+
+        # =========================
+        # LEFT: DOCUMENT PREVIEW
+        # =========================
         tk.Label(
             left,
             text="📘 THESIS DOCUMENT",
@@ -565,85 +577,135 @@ class StudentSubmissions(tk.Frame):
 
         tk.Frame(left, bg="#d5dde8", height=1).pack(fill="x", padx=18)
 
-        doc_canvas = tk.Canvas(left, bg="#454545", highlightthickness=0)
-        doc_canvas.pack(fill="both", expand=True, padx=18, pady=15)
+        doc_frame = tk.Frame(left, bg="#454545")
+        doc_frame.pack(fill="both", expand=True, padx=18, pady=15)
+
+        doc_canvas = tk.Canvas(
+            doc_frame,
+            bg="#454545",
+            highlightthickness=0,
+            width=580,
+            height=520
+        )
+
+        doc_scroll = ttk.Scrollbar(
+            doc_frame,
+            orient="vertical",
+            command=doc_canvas.yview
+        )
+
+        doc_canvas.configure(yscrollcommand=doc_scroll.set)
+
+        doc_canvas.grid(row=0, column=0, sticky="nsew")
+        doc_scroll.grid(row=0, column=1, sticky="ns")
+
+        doc_frame.rowconfigure(0, weight=1)
+        doc_frame.columnconfigure(0, weight=1)
+
+        doc_canvas.images = []
 
         try:
             if not file_path or not os.path.exists(file_path):
                 doc_canvas.create_text(
                     300,
                     250,
-                    text=(
-                        "File was not found in the uploads folder.\n"
-                        "Please upload the thesis again."
-                    ),
+                    text="File was not found in the uploads folder.\nPlease upload the thesis again.",
                     fill=WHITE,
                     font=("Segoe UI", 13),
                     justify="center"
                 )
+                doc_canvas.configure(scrollregion=(0, 0, 600, 520))
 
             elif fitz is None or Image is None or ImageTk is None:
                 doc_canvas.create_text(
                     300,
                     250,
-                    text=(
-                        "PDF preview libraries are not installed.\n"
-                        "Click 'Open in Default App' to view the document."
-                    ),
+                    text="PDF preview libraries are not installed.\nClick 'Open in Default App' to view the document.",
                     fill=WHITE,
                     font=("Segoe UI", 13),
                     justify="center"
                 )
+                doc_canvas.configure(scrollregion=(0, 0, 600, 520))
 
             elif submission["file_type"].lower() == "pdf":
                 pdf = fitz.open(file_path)
-                page = pdf.load_page(0)
 
-                pix = page.get_pixmap(
-                    matrix=fitz.Matrix(1.5, 1.5),
-                    alpha=False
-                )
+                canvas_width = 540
+                margin_left = 20
+                y_position = 20
 
-                img = Image.frombytes(
-                    "RGB",
-                    (pix.width, pix.height),
-                    pix.samples
-                )
+                for page_number in range(len(pdf)):
+                    page = pdf.load_page(page_number)
+                    rect = page.rect
 
-                img.thumbnail((560, 680))
+                    zoom = canvas_width / rect.width
+                    pix = page.get_pixmap(
+                        matrix=fitz.Matrix(zoom, zoom),
+                        alpha=False
+                    )
 
-                photo = ImageTk.PhotoImage(img)
+                    img = Image.frombytes(
+                        "RGB",
+                        (pix.width, pix.height),
+                        pix.samples
+                    )
 
-                doc_canvas.image = photo
-                doc_canvas.create_image(20, 20, anchor="nw", image=photo)
+                    photo = ImageTk.PhotoImage(img)
+                    doc_canvas.images.append(photo)
+
+                    doc_canvas.create_text(
+                        margin_left,
+                        y_position,
+                        anchor="nw",
+                        text=f"Page {page_number + 1}",
+                        fill=WHITE,
+                        font=("Segoe UI", 10, "bold")
+                    )
+
+                    y_position += 25
+
+                    doc_canvas.create_image(
+                        margin_left,
+                        y_position,
+                        anchor="nw",
+                        image=photo
+                    )
+
+                    y_position += pix.height + 35
 
                 pdf.close()
+
+                doc_canvas.configure(
+                    scrollregion=(0, 0, canvas_width + 50, y_position)
+                )
 
             else:
                 doc_canvas.create_text(
                     300,
                     250,
-                    text=(
-                        "DOCX preview is not available.\n"
-                        "Click 'Open in Default App' to view the document."
-                    ),
+                    text="DOCX preview is not available.\nClick 'Open in Default App' to view the document.",
                     fill=WHITE,
                     font=("Segoe UI", 13),
                     justify="center"
                 )
+                doc_canvas.configure(scrollregion=(0, 0, 600, 520))
 
         except Exception as e:
             doc_canvas.create_text(
                 300,
                 250,
-                text=(
-                    f"Preview could not be loaded.\n{e}\n\n"
-                    "Click 'Open in Default App' to view the document."
-                ),
+                text=f"Preview could not be loaded.\n{e}\n\nClick 'Open in Default App' to view the document.",
                 fill=WHITE,
                 font=("Segoe UI", 11),
                 justify="center"
             )
+            doc_canvas.configure(scrollregion=(0, 0, 600, 520))
+
+        def _scroll_document(event):
+            doc_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            return "break"
+
+        doc_canvas.bind("<MouseWheel>", _scroll_document)
 
         bottom_doc = tk.Frame(left, bg=WHITE)
         bottom_doc.pack(fill="x", padx=18, pady=(0, 15))
@@ -658,15 +720,15 @@ class StudentSubmissions(tk.Frame):
 
         tk.Label(
             bottom_doc,
-            text=(
-                f"Type: {submission['file_type']}   "
-                f"Size: {submission['file_size_kb']} KB"
-            ),
+            text=f"Type: {submission['file_type']}   Size: {submission['file_size_kb']} KB",
             bg=WHITE,
             fg=MUTED,
             font=("Segoe UI", 10)
         ).pack(side="right")
 
+        # =========================
+        # RIGHT: FEEDBACK
+        # =========================
         top_feedback = tk.Frame(right, bg=WHITE)
         top_feedback.pack(fill="x", padx=22, pady=(18, 10))
 
@@ -697,11 +759,7 @@ class StudentSubmissions(tk.Frame):
             pady=4
         ).pack(side="right")
 
-        tk.Frame(right, bg="#d5dde8", height=1).pack(
-            fill="x",
-            padx=22,
-            pady=(0, 15)
-        )
+        tk.Frame(right, bg="#d5dde8", height=1).pack(fill="x", padx=22, pady=(0, 15))
 
         details = tk.Frame(
             right,
@@ -717,14 +775,7 @@ class StudentSubmissions(tk.Frame):
             bg="#f8fbff",
             fg="#003B7A",
             font=("Segoe UI", 11, "bold")
-        ).grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="w",
-            padx=15,
-            pady=(12, 8)
-        )
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(12, 8))
 
         info_items = [
             ("Student", SESSION["name"]),
@@ -740,13 +791,7 @@ class StudentSubmissions(tk.Frame):
             column_number = i % 2
 
             box = tk.Frame(details, bg="#f8fbff")
-            box.grid(
-                row=row_number,
-                column=column_number,
-                sticky="ew",
-                padx=15,
-                pady=7
-            )
+            box.grid(row=row_number, column=column_number, sticky="ew", padx=15, pady=7)
 
             tk.Label(
                 box,
@@ -783,12 +828,7 @@ class StudentSubmissions(tk.Frame):
             highlightbackground="#b7d7c2",
             highlightthickness=1
         )
-        feedback_frame.pack(
-            fill="both",
-            expand=True,
-            padx=22,
-            pady=(0, 18)
-        )
+        feedback_frame.pack(fill="both", expand=True, padx=22, pady=(0, 18))
 
         feedback_box = tk.Text(
             feedback_frame,
@@ -801,20 +841,66 @@ class StudentSubmissions(tk.Frame):
             pady=15
         )
 
-        scroll = ttk.Scrollbar(
+        feedback_scroll = ttk.Scrollbar(
             feedback_frame,
             orient="vertical",
             command=feedback_box.yview
         )
 
-        feedback_box.configure(yscrollcommand=scroll.set)
+        feedback_box.configure(yscrollcommand=feedback_scroll.set)
 
         feedback_box.insert("1.0", feedback_text)
         feedback_box.config(state="disabled")
 
         feedback_box.pack(side="left", fill="both", expand=True)
-        scroll.pack(side="right", fill="y")
+        feedback_scroll.pack(side="right", fill="y")
 
+        # =========================
+        # STUDENT REPLY
+        # =========================
+        tk.Label(
+            right,
+            text="Reply to Supervisor",
+            bg=WHITE,
+            fg="#003B7A",
+            font=("Segoe UI", 12, "bold")
+        ).pack(anchor="w", padx=22, pady=(0, 8))
+
+        reply_frame = tk.Frame(
+            right,
+            bg=WHITE,
+            highlightbackground="#d5dde8",
+            highlightthickness=1
+        )
+        reply_frame.pack(fill="x", padx=22, pady=(0, 18))
+
+        reply_box = tk.Text(
+            reply_frame,
+            height=4,
+            wrap="word",
+            bg="#ffffff",
+            fg=DARK,
+            font=("Segoe UI", 10),
+            padx=10,
+            pady=8
+        )
+        reply_box.pack(fill="x", padx=8, pady=8)
+
+        tk.Button(
+            reply_frame,
+            text="Send Reply",
+            command=lambda: self._send_feedback_reply(submission, reply_box),
+            bg=BLUE,
+            fg=WHITE,
+            relief="flat",
+            font=("Segoe UI", 10, "bold"),
+            padx=12,
+            pady=6
+        ).pack(anchor="e", padx=8, pady=(0, 8))
+
+        # =========================
+        # BOTTOM BUTTONS
+        # =========================
         bottom = tk.Frame(right, bg=WHITE)
         bottom.pack(fill="x", padx=22, pady=(0, 18))
 
@@ -823,10 +909,7 @@ class StudentSubmissions(tk.Frame):
             text="Open Thesis File",
             command=lambda: open_file(file_path)
             if file_path and os.path.exists(file_path)
-            else messagebox.showerror(
-                "File Not Found",
-                "The thesis file could not be found."
-            ),
+            else messagebox.showerror("File Not Found", "The thesis file could not be found."),
             bg=BLUE,
             fg=WHITE,
             relief="flat",
@@ -846,3 +929,359 @@ class StudentSubmissions(tk.Frame):
             padx=14,
             pady=7
         ).pack(side="right")
+    # def _open_selected_feedback(self, event=None):
+    #     submission = self._get_selected_submission()
+
+    #     if not submission:
+    #         return
+
+    #     win = tk.Toplevel(self)
+    #     win.title(
+    #         f"Thesis Submission Feedback - "
+    #         f"v{submission['version_number']} - {SESSION['name']}"
+    #     )
+    #     win.geometry("1250x720")
+    #     win.configure(bg="#eef3f8")
+
+    #     file_path = self._resolve_submission_file_path(submission)
+    #     feedback_text = submission.get("feedback") or "No feedback has been provided yet."
+
+    #     header = tk.Frame(win, bg="#003B7A", height=90)
+    #     header.pack(fill="x")
+    #     header.pack_propagate(False)
+
+    #     tk.Label(
+    #         header,
+    #         text="📄  THESIS SUBMISSION FEEDBACK",
+    #         bg="#003B7A",
+    #         fg=WHITE,
+    #         font=("Segoe UI", 20, "bold")
+    #     ).pack(side="left", padx=25)
+
+    #     tk.Button(
+    #         header,
+    #         text="Open in Default App",
+    #         command=lambda: open_file(file_path)
+    #         if file_path and os.path.exists(file_path)
+    #         else messagebox.showerror(
+    #             "File Not Found",
+    #             "The thesis file could not be found."
+    #         ),
+    #         bg="#2F80ED",
+    #         fg=WHITE,
+    #         relief="flat",
+    #         font=("Segoe UI", 10, "bold"),
+    #         padx=18,
+    #         pady=8
+    #     ).pack(side="right", padx=(0, 25))
+
+    #     main = tk.Frame(win, bg="#eef3f8")
+    #     main.pack(fill="both", expand=True, padx=18, pady=18)
+
+    #     left = tk.Frame(
+    #         main,
+    #         bg=WHITE,
+    #         highlightbackground="#d5dde8",
+    #         highlightthickness=1
+    #     )
+    #     left.pack(side="left", fill="both", expand=True, padx=(0, 10))
+
+    #     right = tk.Frame(
+    #         main,
+    #         bg=WHITE,
+    #         highlightbackground="#d5dde8",
+    #         highlightthickness=1
+    #     )
+    #     right.pack(side="right", fill="both", expand=True, padx=(10, 0))
+
+    #     tk.Label(
+    #         left,
+    #         text="📘 THESIS DOCUMENT",
+    #         bg=WHITE,
+    #         fg="#003B7A",
+    #         font=("Segoe UI", 13, "bold")
+    #     ).pack(anchor="w", padx=18, pady=(15, 10))
+
+    #     tk.Frame(left, bg="#d5dde8", height=1).pack(fill="x", padx=18)
+
+    #     doc_canvas = tk.Canvas(left, bg="#454545", highlightthickness=0)
+    #     doc_canvas.pack(fill="both", expand=True, padx=18, pady=15)
+
+    #     try:
+    #         if not file_path or not os.path.exists(file_path):
+    #             doc_canvas.create_text(
+    #                 300,
+    #                 250,
+    #                 text=(
+    #                     "File was not found in the uploads folder.\n"
+    #                     "Please upload the thesis again."
+    #                 ),
+    #                 fill=WHITE,
+    #                 font=("Segoe UI", 13),
+    #                 justify="center"
+    #             )
+
+    #         elif fitz is None or Image is None or ImageTk is None:
+    #             doc_canvas.create_text(
+    #                 300,
+    #                 250,
+    #                 text=(
+    #                     "PDF preview libraries are not installed.\n"
+    #                     "Click 'Open in Default App' to view the document."
+    #                 ),
+    #                 fill=WHITE,
+    #                 font=("Segoe UI", 13),
+    #                 justify="center"
+    #             )
+
+    #         elif submission["file_type"].lower() == "pdf":
+    #             pdf = fitz.open(file_path)
+    #             page = pdf.load_page(0)
+
+    #             pix = page.get_pixmap(
+    #                 matrix=fitz.Matrix(1.5, 1.5),
+    #                 alpha=False
+    #             )
+
+    #             img = Image.frombytes(
+    #                 "RGB",
+    #                 (pix.width, pix.height),
+    #                 pix.samples
+    #             )
+
+    #             img.thumbnail((560, 680))
+
+    #             photo = ImageTk.PhotoImage(img)
+
+    #             doc_canvas.image = photo
+    #             doc_canvas.create_image(20, 20, anchor="nw", image=photo)
+
+    #             pdf.close()
+
+    #         else:
+    #             doc_canvas.create_text(
+    #                 300,
+    #                 250,
+    #                 text=(
+    #                     "DOCX preview is not available.\n"
+    #                     "Click 'Open in Default App' to view the document."
+    #                 ),
+    #                 fill=WHITE,
+    #                 font=("Segoe UI", 13),
+    #                 justify="center"
+    #             )
+
+    #     except Exception as e:
+    #         doc_canvas.create_text(
+    #             300,
+    #             250,
+    #             text=(
+    #                 f"Preview could not be loaded.\n{e}\n\n"
+    #                 "Click 'Open in Default App' to view the document."
+    #             ),
+    #             fill=WHITE,
+    #             font=("Segoe UI", 11),
+    #             justify="center"
+    #         )
+
+    #     bottom_doc = tk.Frame(left, bg=WHITE)
+    #     bottom_doc.pack(fill="x", padx=18, pady=(0, 15))
+
+    #     tk.Label(
+    #         bottom_doc,
+    #         text=f"📎 {submission['file_name']}",
+    #         bg=WHITE,
+    #         fg=DARK,
+    #         font=("Segoe UI", 10)
+    #     ).pack(side="left")
+
+    #     tk.Label(
+    #         bottom_doc,
+    #         text=(
+    #             f"Type: {submission['file_type']}   "
+    #             f"Size: {submission['file_size_kb']} KB"
+    #         ),
+    #         bg=WHITE,
+    #         fg=MUTED,
+    #         font=("Segoe UI", 10)
+    #     ).pack(side="right")
+
+    #     top_feedback = tk.Frame(right, bg=WHITE)
+    #     top_feedback.pack(fill="x", padx=22, pady=(18, 10))
+
+    #     tk.Label(
+    #         top_feedback,
+    #         text="💬 SUPERVISOR'S FEEDBACK",
+    #         bg=WHITE,
+    #         fg="#003B7A",
+    #         font=("Segoe UI", 13, "bold")
+    #     ).pack(side="left")
+
+    #     status = submission["status"]
+
+    #     if status == "Approved":
+    #         status_color = GREEN
+    #     elif status == "Rejected":
+    #         status_color = DANGER
+    #     else:
+    #         status_color = GOLD_TILE
+
+    #     tk.Label(
+    #         top_feedback,
+    #         text=status,
+    #         bg=status_color,
+    #         fg=WHITE,
+    #         font=("Segoe UI", 10, "bold"),
+    #         padx=14,
+    #         pady=4
+    #     ).pack(side="right")
+
+    #     tk.Frame(right, bg="#d5dde8", height=1).pack(
+    #         fill="x",
+    #         padx=22,
+    #         pady=(0, 15)
+    #     )
+
+    #     details = tk.Frame(
+    #         right,
+    #         bg="#f8fbff",
+    #         highlightbackground="#d5dde8",
+    #         highlightthickness=1
+    #     )
+    #     details.pack(fill="x", padx=22, pady=(0, 18))
+
+    #     tk.Label(
+    #         details,
+    #         text="Submission Details",
+    #         bg="#f8fbff",
+    #         fg="#003B7A",
+    #         font=("Segoe UI", 11, "bold")
+    #     ).grid(
+    #         row=0,
+    #         column=0,
+    #         columnspan=2,
+    #         sticky="w",
+    #         padx=15,
+    #         pady=(12, 8)
+    #     )
+
+    #     info_items = [
+    #         ("Student", SESSION["name"]),
+    #         ("Version", f"v{submission['version_number']}"),
+    #         ("File Name", submission["file_name"]),
+    #         ("Submitted", str(submission["submitted_at"])[:16]),
+    #         ("Status", submission["status"]),
+    #         ("File Size", f"{submission['file_size_kb']} KB")
+    #     ]
+
+    #     for i, (label_text, value_text) in enumerate(info_items):
+    #         row_number = (i // 2) + 1
+    #         column_number = i % 2
+
+    #         box = tk.Frame(details, bg="#f8fbff")
+    #         box.grid(
+    #             row=row_number,
+    #             column=column_number,
+    #             sticky="ew",
+    #             padx=15,
+    #             pady=7
+    #         )
+
+    #         tk.Label(
+    #             box,
+    #             text=label_text,
+    #             bg="#f8fbff",
+    #             fg=MUTED,
+    #             font=("Segoe UI", 9)
+    #         ).pack(anchor="w")
+
+    #         tk.Label(
+    #             box,
+    #             text=value_text,
+    #             bg="#f8fbff",
+    #             fg=DARK,
+    #             font=("Segoe UI", 10, "bold"),
+    #             wraplength=230,
+    #             justify="left"
+    #         ).pack(anchor="w")
+
+    #     details.columnconfigure(0, weight=1)
+    #     details.columnconfigure(1, weight=1)
+
+    #     tk.Label(
+    #         right,
+    #         text="Detailed Feedback",
+    #         bg=WHITE,
+    #         fg="#003B7A",
+    #         font=("Segoe UI", 12, "bold")
+    #     ).pack(anchor="w", padx=22, pady=(0, 8))
+
+    #     feedback_frame = tk.Frame(
+    #         right,
+    #         bg=WHITE,
+    #         highlightbackground="#b7d7c2",
+    #         highlightthickness=1
+    #     )
+    #     feedback_frame.pack(
+    #         fill="both",
+    #         expand=True,
+    #         padx=22,
+    #         pady=(0, 18)
+    #     )
+
+    #     feedback_box = tk.Text(
+    #         feedback_frame,
+    #         wrap="word",
+    #         bg="#fbfffd",
+    #         fg=DARK,
+    #         font=("Segoe UI", 11),
+    #         bd=0,
+    #         padx=15,
+    #         pady=15
+    #     )
+
+    #     scroll = ttk.Scrollbar(
+    #         feedback_frame,
+    #         orient="vertical",
+    #         command=feedback_box.yview
+    #     )
+
+    #     feedback_box.configure(yscrollcommand=scroll.set)
+
+    #     feedback_box.insert("1.0", feedback_text)
+    #     feedback_box.config(state="disabled")
+
+    #     feedback_box.pack(side="left", fill="both", expand=True)
+    #     scroll.pack(side="right", fill="y")
+
+    #     bottom = tk.Frame(right, bg=WHITE)
+    #     bottom.pack(fill="x", padx=22, pady=(0, 18))
+
+    #     tk.Button(
+    #         bottom,
+    #         text="Open Thesis File",
+    #         command=lambda: open_file(file_path)
+    #         if file_path and os.path.exists(file_path)
+    #         else messagebox.showerror(
+    #             "File Not Found",
+    #             "The thesis file could not be found."
+    #         ),
+    #         bg=BLUE,
+    #         fg=WHITE,
+    #         relief="flat",
+    #         font=("Segoe UI", 10),
+    #         padx=14,
+    #         pady=7
+    #     ).pack(side="left")
+
+    #     tk.Button(
+    #         bottom,
+    #         text="Close",
+    #         command=win.destroy,
+    #         bg="#7f8c8d",
+    #         fg=WHITE,
+    #         relief="flat",
+    #         font=("Segoe UI", 10),
+    #         padx=14,
+    #         pady=7
+    #     ).pack(side="right")
