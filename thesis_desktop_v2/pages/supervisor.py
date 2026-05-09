@@ -8,6 +8,7 @@ import os, shutil, uuid
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
+from .supervisor_review import SupervisorReviewWindow
 from database import query
 from auth import SESSION, hash_password, check_password
 from ui import (BG_MAIN, BG_WHITE, BLUE, BLUE2, GREEN, GOLD_TILE, ORANGE,
@@ -92,97 +93,147 @@ class SupervisorDashboard(tk.Frame):
 class SupervisorReviews(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
+
         page_header(self, "Submission Reviews", "Review student submissions")
-        self.sub_map  = {}
+
+        self.sub_map = {}
         self.file_map = {}
+        self.data_map = {}
+
         self._build()
 
     def _build(self):
         sid = SESSION["user_id"]
-        f   = card_frame(self, padx=0, pady=0)
+
+        f = card_frame(self, padx=0, pady=0)
         f.pack(fill="both", expand=True, padx=20, pady=12)
-        tk.Label(f, text="Student Submissions", bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
+
+        tk.Label(
+            f,
+            text="Student Submissions",
+            bg=BG_WHITE,
+            fg=DARK,
+            font=("Segoe UI", 11, "bold")
+        ).pack(anchor="w", padx=14, pady=(10, 6))
+
         tk.Frame(f, bg=BORDER, height=1).pack(fill="x")
 
         cols = ("Student", "Version", "File", "Type", "Size (KB)", "Submitted", "Status")
+
         self.tree = ttk.Treeview(f, columns=cols, show="headings", height=12)
-        style_treeview(self.tree, cols, [140, 60, 200, 60, 70, 130, 80])
+        style_treeview(self.tree, cols, [140, 60, 220, 60, 80, 130, 90])
         self.tree.pack(fill="both", expand=True, padx=8, pady=(8, 0))
+
+        self.tree.bind("<Double-1>", self._open_review_window)
 
         bf = tk.Frame(f, bg=BG_WHITE, pady=8)
         bf.pack(fill="x", padx=8, pady=(0, 8))
-        ab = tk.Button(bf, text="✓ Approve", command=lambda: self._review("Approved"))
-        style_btn(ab, GREEN, WHITE)
-        ab.pack(side="left", padx=(0, 6))
-        rb = tk.Button(bf, text="✗ Reject", command=lambda: self._review("Rejected"))
-        style_btn(rb, DANGER, WHITE)
-        rb.pack(side="left", padx=(0, 6))
-        ob = tk.Button(bf, text="📄 Open File", command=self._open_selected)
-        style_btn(ob, "#2e8b57", WHITE)
-        ob.pack(side="left")
+
+        open_review_btn = tk.Button(
+            bf,
+            text="Open Review Preview",
+            command=self._open_review_window
+        )
+        style_btn(open_review_btn, BLUE, WHITE)
+        open_review_btn.pack(side="left", padx=(0, 6))
+
+        open_file_btn = tk.Button(
+            bf,
+            text="Open File Only",
+            command=self._open_selected_file
+        )
+        style_btn(open_file_btn, "#2e8b57", WHITE)
+        open_file_btn.pack(side="left", padx=(0, 6))
+
         self._load(sid)
 
     def _load(self, sid):
         for r in self.tree.get_children():
             self.tree.delete(r)
+
         self.sub_map.clear()
         self.file_map.clear()
-        rows = query("""SELECT s.submission_id, st.full_name, s.version_number,
-                               s.file_name, s.file_type, s.file_size_kb,
-                               s.submitted_at, s.status, s.file_path
-                        FROM submissions s
-                        JOIN students st ON s.student_id=st.student_id
-                        WHERE st.supervisor_id=%s ORDER BY s.submitted_at DESC""", (sid,)) or []
-        for r in rows:
-            iid = self.tree.insert("", "end", values=(
-                r["full_name"], f"v{r['version_number']}",
-                r["file_name"], r["file_type"], r["file_size_kb"],
-                str(r["submitted_at"])[:16], r["status"]))
-            self.sub_map[iid]  = r["submission_id"]
-            self.file_map[iid] = r["file_path"]
+        self.data_map.clear()
 
-    def _open_selected(self):
+        rows = query("""
+            SELECT 
+                s.submission_id,
+                s.student_id,
+                st.full_name,
+                s.version_number,
+                s.file_name,
+                s.file_type,
+                s.file_size_kb,
+                s.submitted_at,
+                s.status,
+                s.file_path,
+                f.comment AS feedback
+            FROM submissions s
+            JOIN students st ON s.student_id = st.student_id
+            LEFT JOIN feedback f ON s.submission_id = f.submission_id
+            WHERE st.supervisor_id = %s
+            ORDER BY s.submitted_at DESC
+        """, (sid,)) or []
+
+        for r in rows:
+            iid = self.tree.insert(
+                "",
+                "end",
+                values=(
+                    r["full_name"],
+                    f"v{r['version_number']}",
+                    r["file_name"],
+                    r["file_type"],
+                    r["file_size_kb"],
+                    str(r["submitted_at"])[:16],
+                    r["status"]
+                )
+            )
+
+            self.sub_map[iid] = r["submission_id"]
+            self.file_map[iid] = r["file_path"]
+            self.data_map[iid] = r
+
+    def _get_selected_submission(self):
         sel = self.tree.selection()
+
         if not sel:
             messagebox.showwarning("Select", "Please select a submission first.")
+            return None
+
+        return self.data_map.get(sel[0])
+
+    def _open_review_window(self, event=None):
+        submission = self._get_selected_submission()
+
+        if not submission:
             return
-        fp = self.file_map.get(sel[0])
+
+        SupervisorReviewWindow(
+            self,
+            submission,
+            refresh_callback=lambda: self._load(SESSION["user_id"])
+        )
+
+    def _open_selected_file(self):
+        submission = self._get_selected_submission()
+
+        if not submission:
+            return
+
+        fp = submission.get("file_path")
+
         if not fp:
             messagebox.showerror("Error", "File path not found.")
             return
+
         full = os.path.join(UPLOAD_FOLDER, fp)
+
         if not os.path.exists(full):
             messagebox.showerror("Not Found", f"File not found on disk:\n{full}")
             return
+
         open_file(full)
-
-    def _review(self, status):
-        sel = self.tree.selection()
-        if not sel:
-            messagebox.showwarning("Select", "Please select a submission first.")
-            return
-        sub_id  = self.sub_map.get(sel[0])
-        comment = ""
-        if status == "Rejected":
-            dlg = FeedbackDialog(self.master, "Rejection Feedback")
-            self.wait_window(dlg)
-            comment = dlg.result or ""
-        query("UPDATE submissions SET status=%s WHERE submission_id=%s", (status, sub_id))
-        if comment:
-            query("""INSERT INTO feedback (submission_id, supervisor_id, comment)
-                     VALUES (%s,%s,%s)""", (sub_id, SESSION["user_id"], comment))
-        # Notify student
-        sub_row = query("SELECT student_id, file_name FROM submissions WHERE submission_id=%s",
-                        (sub_id,), one=True)
-        if sub_row:
-            create_notification("student", sub_row["student_id"], "submission",
-                                f"Submission {status}",
-                                f"Your file '{sub_row['file_name']}' was {status.lower()}.")
-        messagebox.showinfo("Done", f"Submission {status.lower()}.")
-        self._load(SESSION["user_id"])
-
-
 # ═══════════════════════════════════════════════════════════
 class SupervisorDeadlines(tk.Frame):
     def __init__(self, parent):
