@@ -39,7 +39,7 @@ class SupervisorReviewWindow(tk.Toplevel):
         self.title(
             f"Thesis Submission Review - v{submission['version_number']} - {submission['full_name']}"
         )
-        self.geometry("1250x720")
+        self.geometry("1250x780")
         self.configure(bg="#eef3f8")
 
         self._build()
@@ -348,7 +348,7 @@ class SupervisorReviewWindow(tk.Toplevel):
             highlightbackground="#d5dde8",
             highlightthickness=1
         )
-        details.pack(fill="x", padx=22, pady=(0, 18))
+        details.pack(fill="x", padx=22, pady=(0, 10))
 
         tk.Label(
             details,
@@ -372,7 +372,7 @@ class SupervisorReviewWindow(tk.Toplevel):
             column_number = i % 2
 
             box = tk.Frame(details, bg="#f8fbff")
-            box.grid(row=row_number, column=column_number, sticky="ew", padx=15, pady=7)
+            box.grid(row=row_number, column=column_number, sticky="ew", padx=15, pady=4)
 
             tk.Label(
                 box,
@@ -409,11 +409,11 @@ class SupervisorReviewWindow(tk.Toplevel):
             highlightbackground="#b7d7c2",
             highlightthickness=1
         )
-        feedback_frame.pack(fill="x", padx=22, pady=(0, 12))
+        feedback_frame.pack(fill="x", padx=22, pady=(0, 8))
 
         self.feedback_box = tk.Text(
             feedback_frame,
-            height=7,
+            height=4,
             wrap="word",
             bg="#fbfffd",
             fg=DARK,
@@ -439,7 +439,8 @@ class SupervisorReviewWindow(tk.Toplevel):
 
         # IMPORTANT: buttons are packed immediately after fixed-height feedback box
         button_frame = tk.Frame(parent, bg=WHITE)
-        button_frame.pack(fill="x", padx=22, pady=(0, 10))
+        button_frame.pack(fill="x", padx=22, pady=(0, 8))
+        button_frame.lift()
 
         tk.Button(
             button_frame,
