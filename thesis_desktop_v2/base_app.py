@@ -5,7 +5,7 @@ CEN 302 Software Engineering | Group III | Epoka University
 """
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox
 from ui import (NAV_BG, NAV_HOVER, TOP_BG, BLUE, BG_MAIN,
                 WHITE, MUTED, DARK, BORDER, DANGER, TEXT)
 from auth import SESSION
@@ -31,23 +31,48 @@ class BaseApp(tk.Frame):
         super().__init__(master, bg=BG_MAIN)
         self.master  = master
         self.content = None
+
+        # ── Navigation history ────────────────────────────────
+        self._history      = []    # stack of previous page names
+        self._current_page = None  # name of page shown right now
+
         self._build_shell()
         if self.NAV_ITEMS:
             self._navigate(self.NAV_ITEMS[0][0])
         self._poll_notifications()
 
+    # ─────────────────────────────────────────────────────────
     def _build_shell(self):
         # ── Top bar ───────────────────────────────────────────
         topbar = tk.Frame(self, bg=TOP_BG, height=50)
         topbar.pack(side="top", fill="x")
         topbar.pack_propagate(False)
 
-        # Logo left
-        tk.Label(topbar, text="E  EPOKA  THESIS TRACKER",
-                 bg=TOP_BG, fg=WHITE,
-                 font=("Segoe UI", 11, "bold")).pack(side="left", padx=16)
+        # ── Left side: Back + Logo (Home button REMOVED) ──────
+        left_f = tk.Frame(topbar, bg=TOP_BG)
+        left_f.pack(side="left", padx=8)
 
-        # Right side — notification bell + user name
+        # ← Back button
+        self.back_btn = tk.Button(
+            left_f,
+            text="← Back",
+            command=self._go_back,
+            bg=TOP_BG, fg=WHITE,
+            activebackground=NAV_HOVER,
+            activeforeground=WHITE,
+            relief="flat", cursor="hand2",
+            font=("Segoe UI", 9, "bold"),
+            padx=6, pady=0, bd=0
+        )
+        self.back_btn.pack(side="left")
+        self.back_btn.pack_forget()   # hidden until there is history
+
+        # Logo
+        tk.Label(left_f, text="E  EPOKA  THESIS TRACKER",
+                 bg=TOP_BG, fg=WHITE,
+                 font=("Segoe UI", 11, "bold")).pack(side="left", padx=4)
+
+        # ── Right side: bell + user name ──────────────────────
         right_f = tk.Frame(topbar, bg=TOP_BG)
         right_f.pack(side="right", padx=12)
 
@@ -102,35 +127,82 @@ class BaseApp(tk.Frame):
             btn.pack(fill="x")
             self.nav_buttons[page] = btn
 
-        # Logout at bottom
+        # ── Logout button — bold red, at the very bottom ──────
         tk.Frame(self.sidebar, bg="#1a252f", height=1).pack(
-            fill="x", side="bottom", pady=0)
-        tk.Button(self.sidebar, text="⇤  Logout",
-                  command=self.master.logout,
-                  anchor="w",
-                  bg=NAV_BG, fg="#e74c3c",
-                  activebackground=NAV_HOVER,
-                  relief="flat", cursor="hand2",
-                  font=("Segoe UI", 10),
-                  padx=10, pady=9).pack(
-            side="bottom", fill="x")
+            fill="x", side="bottom")
+
+        logout_btn = tk.Button(
+            self.sidebar,
+            text="⇤  Logout",
+            command=self.master.logout,
+            anchor="w",
+            bg="#c0392b",          # solid red background
+            fg=WHITE,
+            activebackground="#922b21",
+            activeforeground=WHITE,
+            relief="flat", cursor="hand2",
+            font=("Segoe UI", 11, "bold"),   # bold + slightly larger
+            padx=10, pady=11, bd=0
+        )
+        logout_btn.pack(side="bottom", fill="x")
+
+        # Hover effect for logout
+        logout_btn.bind("<Enter>", lambda e: logout_btn.config(bg="#922b21"))
+        logout_btn.bind("<Leave>", lambda e: logout_btn.config(bg="#c0392b"))
 
         # ── Main content area ─────────────────────────────────
         self.main = tk.Frame(body, bg=BG_MAIN)
         self.main.pack(side="right", fill="both", expand=True)
 
-    def _navigate(self, page):
+    # ─────────────────────────────────────────────────────────
+    def _navigate(self, page, push_history=True):
+        """
+        Navigate to a page.
+        push_history=True  -> forward navigation (saves current to stack)
+        push_history=False -> back navigation (does NOT push)
+        """
+        if page not in self.PAGES:
+            return
+
+        if push_history and self._current_page and self._current_page != page:
+            self._history.append(self._current_page)
+
         for p, btn in self.nav_buttons.items():
-            if p == page:
-                btn.configure(bg=BLUE, fg=WHITE)
-            else:
-                btn.configure(bg=NAV_BG, fg="#bdc3c7")
+            btn.configure(bg=BLUE if p == page else NAV_BG,
+                          fg=WHITE if p == page else "#bdc3c7")
+
+        # Highlight the notification bell if on notifications page
+        if page == "notifications":
+            self.bell_btn.configure(fg=BLUE)
+        else:
+            self.bell_btn.configure(fg=WHITE)
+
         if self.content:
             self.content.destroy()
-        if page in self.PAGES:
-            self.content = self.PAGES[page](self.main)
-            self.content.pack(fill="both", expand=True)
 
+        self.content = self.PAGES[page](self.main)
+        self.content.pack(fill="both", expand=True)
+        self._current_page = page
+        self._update_back_btn()
+
+    # ─────────────────────────────────────────────────────────
+    def _go_back(self):
+        """Go to the previous page, or login if no history left."""
+        if self._history:
+            previous = self._history.pop()
+            self._navigate(previous, push_history=False)
+        else:
+            self.master.logout()
+
+    # ─────────────────────────────────────────────────────────
+    def _update_back_btn(self):
+        """Show ← Back only when there is history."""
+        if self._history:
+            self.back_btn.pack(side="left")
+        else:
+            self.back_btn.pack_forget()
+
+    # ─────────────────────────────────────────────────────────
     def _poll_notifications(self):
         """Update notification badge every 15 seconds."""
         try:

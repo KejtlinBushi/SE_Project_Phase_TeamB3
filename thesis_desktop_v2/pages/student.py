@@ -53,22 +53,23 @@ class StudentDashboard(tk.Frame):
         grid = tk.Frame(self, bg=BG_MAIN)
         grid.pack(fill="x", padx=20, pady=12)
         tiles = [
-            ("📄", "Total\nSubmissions", str(subs["c"]),   BLUE),
-            ("⏳", "Pending\nReview",    str(pend["c"]),   GOLD_TILE),
+            ("📄", "Total Submissions", str(subs["c"]),   BLUE),
+            ("⏳", "Pending Review",    str(pend["c"]),   GOLD_TILE),
             ("✅", "Approved",           str(appr["c"]),   GREEN),
-            ("🎯", "Milestones\nDone",   f"{mdone['c']}/{mtot['c']}", ORANGE),
-            ("📅", "Upcoming\nDeadlines",str(dl["c"]),     "#8e44ad"),
+            ("🎯", "Milestones Done",   f"{mdone['c']}/{mtot['c']}", ORANGE),
+            ("📅", "Upcoming Deadlines",str(dl["c"]),     "#8e44ad"),
         ]
         for i, (icon, title, val, color) in enumerate(tiles):
-            f = tk.Frame(grid, bg=color, width=160, height=90)
+            f = tk.Frame(grid, bg=color, width=150, height=100)
             f.grid(row=0, column=i, padx=5, pady=5, sticky="nsew")
             f.pack_propagate(False)
             tk.Label(f, text=icon, bg=color, fg=WHITE,
-                     font=("Segoe UI", 18)).pack(pady=(10, 0))
+                     font=("Segoe UI", 16)).pack(pady=(10, 0))
             tk.Label(f, text=val, bg=color, fg=WHITE,
-                     font=("Segoe UI", 14, "bold")).pack()
+                     font=("Segoe UI", 14, "bold")).pack(pady=(2, 0))
             tk.Label(f, text=title, bg=color, fg=WHITE,
-                     font=("Segoe UI", 8)).pack()
+                     font=("Segoe UI", 9, "bold"),
+                     wraplength=120, justify="center").pack(pady=(2, 8))
             grid.columnconfigure(i, weight=1)
 
         # Recent submissions
@@ -899,7 +900,7 @@ class StudentMessages(tk.Frame):
         me.pack(side="left", fill="x", expand=True, ipady=7, padx=(0, 8))
         me.bind("<Return>", lambda e: self._send(sid, sup_id))
         sb2 = tk.Button(inp, text="Send", command=lambda: self._send(sid, sup_id))
-        style_btn(sb2)
+        style_btn(sb2, "#2e8b57", WHITE)
         sb2.pack(side="right")
 
     def _load_msgs(self, sid, sup_id):
@@ -912,7 +913,7 @@ class StudentMessages(tk.Frame):
                      (sid, sup_id, sup_id, sid)) or []
         for r in rows:
             is_me = r["sender_role"] == "student"
-            bg    = BLUE if is_me else "#ecf0f1"
+            bg    = "#2e8b57" if is_me else "#ecf0f1"
             fg    = WHITE if is_me else DARK
             side  = "right" if is_me else "left"
             bf = tk.Frame(self.msg_frame, bg=BG_WHITE)
@@ -1016,7 +1017,7 @@ class StudentMeetings(tk.Frame):
                                font=("Segoe UI", 10)).pack(side="left", padx=8)
             rb = tk.Button(rf, text="Request Meeting",
                            command=lambda: self._request(sup_id))
-            style_btn(rb)
+            style_btn(rb, "#2e8b57", WHITE)
             rb.pack(anchor="w")
 
         # Scrollable meetings list
@@ -1155,7 +1156,7 @@ class StudentProfile(tk.Frame):
             e.pack(fill="x", ipady=6, pady=(4, 12))
             self.pvars[key] = v
         sb = tk.Button(pf, text="Save Changes", command=self._save)
-        style_btn(sb)
+        style_btn(sb, "#2e8b57", WHITE)
         sb.pack(anchor="w")
 
     def _save(self):
