@@ -12,11 +12,11 @@ from auth import SESSION, logout_user
 from pages.login import LoginPage
 
 from pages.student import (StudentDashboard, StudentSubmissions,
-                            StudentDeadlines, StudentMilestones,
                             StudentMessages,  StudentMeetings,
                             StudentNotifications, StudentProfile)
+from pages.milestones import StudentMilestones, SupervisorMilestones
+from pages.deadlines  import StudentDeadlines,  SupervisorDeadlines
 from pages.supervisor import (SupervisorDashboard, SupervisorReviews,
-                               SupervisorDeadlines, SupervisorMilestones,
                                SupervisorMeetings,  SupervisorMessages,
                                SupervisorNotifications, SupervisorProfile)
 from pages.admin import (AdminDashboard, AdminUsers, AdminAssignments,

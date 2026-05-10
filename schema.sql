@@ -243,3 +243,16 @@ VALUES (
     'admin@thesis.edu',
     '$2b$12$0G0AhEO609jv9331mlLdUuTudMEPH3A4KrtPIMdXTclj1nyfwQO52'
 );
+-- Add percentage progress to milestones (supervisor assigns 0-100)
+ALTER TABLE milestones 
+  ADD COLUMN IF NOT EXISTS progress_pct INT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS supervisor_comment TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS grade VARCHAR(10) DEFAULT NULL;
+ 
+-- Add grade + comment to deadline_assignments
+ALTER TABLE deadline_assignments
+  ADD COLUMN IF NOT EXISTS grade        VARCHAR(10)  DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS comment      TEXT         DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS submitted_at DATETIME     DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS graded_at    DATETIME     DEFAULT NULL;
+ 
