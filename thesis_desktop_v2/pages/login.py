@@ -350,7 +350,7 @@ class LoginPage(tk.Frame):
         e1 = tk.Entry(card, textvariable=self.email_var, width=36)
         style_entry(e1)
         e1.pack(fill="x", ipady=7, pady=(4, 14))
-
+        
         # password
         tk.Label(card, text="Password", bg=WHITE, fg=MUTED,
                  font=("Segoe UI", 9)).pack(anchor="w")
