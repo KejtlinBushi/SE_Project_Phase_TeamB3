@@ -8,6 +8,7 @@ import os, shutil, uuid
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
+from .supervisor_review import SupervisorReviewWindow
 from database import query
 from auth import SESSION, hash_password, check_password
 from ui import (BG_MAIN, BG_WHITE, BLUE, BLUE2, GREEN, GOLD_TILE, ORANGE,
@@ -92,97 +93,147 @@ class SupervisorDashboard(tk.Frame):
 class SupervisorReviews(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
+
         page_header(self, "Submission Reviews", "Review student submissions")
-        self.sub_map  = {}
+
+        self.sub_map = {}
         self.file_map = {}
+        self.data_map = {}
+
         self._build()
 
     def _build(self):
         sid = SESSION["user_id"]
-        f   = card_frame(self, padx=0, pady=0)
+
+        f = card_frame(self, padx=0, pady=0)
         f.pack(fill="both", expand=True, padx=20, pady=12)
-        tk.Label(f, text="Student Submissions", bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
+
+        tk.Label(
+            f,
+            text="Student Submissions",
+            bg=BG_WHITE,
+            fg=DARK,
+            font=("Segoe UI", 11, "bold")
+        ).pack(anchor="w", padx=14, pady=(10, 6))
+
         tk.Frame(f, bg=BORDER, height=1).pack(fill="x")
 
         cols = ("Student", "Version", "File", "Type", "Size (KB)", "Submitted", "Status")
+
         self.tree = ttk.Treeview(f, columns=cols, show="headings", height=12)
-        style_treeview(self.tree, cols, [140, 60, 200, 60, 70, 130, 80])
+        style_treeview(self.tree, cols, [140, 60, 220, 60, 80, 130, 90])
         self.tree.pack(fill="both", expand=True, padx=8, pady=(8, 0))
+
+        self.tree.bind("<Double-1>", self._open_review_window)
 
         bf = tk.Frame(f, bg=BG_WHITE, pady=8)
         bf.pack(fill="x", padx=8, pady=(0, 8))
-        ab = tk.Button(bf, text="✓ Approve", command=lambda: self._review("Approved"))
-        style_btn(ab, GREEN, WHITE)
-        ab.pack(side="left", padx=(0, 6))
-        rb = tk.Button(bf, text="✗ Reject", command=lambda: self._review("Rejected"))
-        style_btn(rb, DANGER, WHITE)
-        rb.pack(side="left", padx=(0, 6))
-        ob = tk.Button(bf, text="📄 Open File", command=self._open_selected)
-        style_btn(ob, "#2e8b57", WHITE)
-        ob.pack(side="left")
+
+        open_review_btn = tk.Button(
+            bf,
+            text="Open Review Preview",
+            command=self._open_review_window
+        )
+        style_btn(open_review_btn, BLUE, WHITE)
+        open_review_btn.pack(side="left", padx=(0, 6))
+
+        open_file_btn = tk.Button(
+            bf,
+            text="Open File Only",
+            command=self._open_selected_file
+        )
+        style_btn(open_file_btn, "#2e8b57", WHITE)
+        open_file_btn.pack(side="left", padx=(0, 6))
+
         self._load(sid)
 
     def _load(self, sid):
         for r in self.tree.get_children():
             self.tree.delete(r)
+
         self.sub_map.clear()
         self.file_map.clear()
-        rows = query("""SELECT s.submission_id, st.full_name, s.version_number,
-                               s.file_name, s.file_type, s.file_size_kb,
-                               s.submitted_at, s.status, s.file_path
-                        FROM submissions s
-                        JOIN students st ON s.student_id=st.student_id
-                        WHERE st.supervisor_id=%s ORDER BY s.submitted_at DESC""", (sid,)) or []
-        for r in rows:
-            iid = self.tree.insert("", "end", values=(
-                r["full_name"], f"v{r['version_number']}",
-                r["file_name"], r["file_type"], r["file_size_kb"],
-                str(r["submitted_at"])[:16], r["status"]))
-            self.sub_map[iid]  = r["submission_id"]
-            self.file_map[iid] = r["file_path"]
+        self.data_map.clear()
 
-    def _open_selected(self):
+        rows = query("""
+            SELECT 
+                s.submission_id,
+                s.student_id,
+                st.full_name,
+                s.version_number,
+                s.file_name,
+                s.file_type,
+                s.file_size_kb,
+                s.submitted_at,
+                s.status,
+                s.file_path,
+                f.comment AS feedback
+            FROM submissions s
+            JOIN students st ON s.student_id = st.student_id
+            LEFT JOIN feedback f ON s.submission_id = f.submission_id
+            WHERE st.supervisor_id = %s
+            ORDER BY s.submitted_at DESC
+        """, (sid,)) or []
+
+        for r in rows:
+            iid = self.tree.insert(
+                "",
+                "end",
+                values=(
+                    r["full_name"],
+                    f"v{r['version_number']}",
+                    r["file_name"],
+                    r["file_type"],
+                    r["file_size_kb"],
+                    str(r["submitted_at"])[:16],
+                    r["status"]
+                )
+            )
+
+            self.sub_map[iid] = r["submission_id"]
+            self.file_map[iid] = r["file_path"]
+            self.data_map[iid] = r
+
+    def _get_selected_submission(self):
         sel = self.tree.selection()
+
         if not sel:
             messagebox.showwarning("Select", "Please select a submission first.")
+            return None
+
+        return self.data_map.get(sel[0])
+
+    def _open_review_window(self, event=None):
+        submission = self._get_selected_submission()
+
+        if not submission:
             return
-        fp = self.file_map.get(sel[0])
+
+        SupervisorReviewWindow(
+            self,
+            submission,
+            refresh_callback=lambda: self._load(SESSION["user_id"])
+        )
+
+    def _open_selected_file(self):
+        submission = self._get_selected_submission()
+
+        if not submission:
+            return
+
+        fp = submission.get("file_path")
+
         if not fp:
             messagebox.showerror("Error", "File path not found.")
             return
+
         full = os.path.join(UPLOAD_FOLDER, fp)
+
         if not os.path.exists(full):
             messagebox.showerror("Not Found", f"File not found on disk:\n{full}")
             return
+
         open_file(full)
-
-    def _review(self, status):
-        sel = self.tree.selection()
-        if not sel:
-            messagebox.showwarning("Select", "Please select a submission first.")
-            return
-        sub_id  = self.sub_map.get(sel[0])
-        comment = ""
-        if status == "Rejected":
-            dlg = FeedbackDialog(self.master, "Rejection Feedback")
-            self.wait_window(dlg)
-            comment = dlg.result or ""
-        query("UPDATE submissions SET status=%s WHERE submission_id=%s", (status, sub_id))
-        if comment:
-            query("""INSERT INTO feedback (submission_id, supervisor_id, comment)
-                     VALUES (%s,%s,%s)""", (sub_id, SESSION["user_id"], comment))
-        # Notify student
-        sub_row = query("SELECT student_id, file_name FROM submissions WHERE submission_id=%s",
-                        (sub_id,), one=True)
-        if sub_row:
-            create_notification("student", sub_row["student_id"], "submission",
-                                f"Submission {status}",
-                                f"Your file '{sub_row['file_name']}' was {status.lower()}.")
-        messagebox.showinfo("Done", f"Submission {status.lower()}.")
-        self._load(SESSION["user_id"])
-
-
 # ═══════════════════════════════════════════════════════════
 class SupervisorDeadlines(tk.Frame):
     def __init__(self, parent):
@@ -355,126 +406,759 @@ class SupervisorMilestones(tk.Frame):
 
 # ═══════════════════════════════════════════════════════════
 class SupervisorMeetings(tk.Frame):
+
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
-        page_header(self, "Meetings", "Schedule and manage meetings")
+
+        page_header(
+            self,
+            "Meetings",
+            "Schedule and manage meetings"
+        )
+
         self.meet_map = {}
+
         self._build()
 
+    # ======================================================
     def _build(self):
-        sid      = SESSION["user_id"]
-        students = query("SELECT student_id, full_name FROM students WHERE supervisor_id=%s", (sid,)) or []
+
+        sid = SESSION["user_id"]
+
+        students = query("""
+            SELECT student_id, full_name
+            FROM students
+            WHERE supervisor_id=%s
+        """, (sid,)) or []
+
+        # ================= FORM =================
         cf = card_frame(self, padx=16, pady=14)
         cf.pack(fill="x", padx=20, pady=(12, 0))
-        tk.Label(cf, text="Schedule Meeting", bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 10))
-        self._stu_map = {s["full_name"]: s["student_id"] for s in students}
-        self.stu_var  = tk.StringVar()
-        tk.Label(cf, text="Student", bg=BG_WHITE, fg=MUTED, font=("Segoe UI", 9)).pack(anchor="w")
-        ttk.Combobox(cf, textvariable=self.stu_var,
-                     values=list(self._stu_map.keys()),
-                     state="readonly", width=40).pack(anchor="w", pady=(4, 10))
+
+        tk.Label(
+            cf,
+            text="Schedule / Update Meeting",
+            bg=BG_WHITE,
+            fg=DARK,
+            font=("Segoe UI", 11, "bold")
+        ).pack(anchor="w", pady=(0, 10))
+
+        # ================= STUDENTS =================
+        self._stu_map = {
+            "All Students": "all"
+        }
+
+        for s in students:
+            self._stu_map[s["full_name"]] = s["student_id"]
+
+        self.stu_var = tk.StringVar()
+
+        tk.Label(
+            cf,
+            text="Student",
+            bg=BG_WHITE,
+            fg=MUTED,
+            font=("Segoe UI", 9)
+        ).pack(anchor="w")
+
+        self.student_cb = ttk.Combobox(
+            cf,
+            textvariable=self.stu_var,
+            values=list(self._stu_map.keys()),
+            state="readonly",
+            width=40
+        )
+
+        self.student_cb.pack(anchor="w", pady=(4, 10))
+
         self._fvars = {}
+
         row_f = tk.Frame(cf, bg=BG_WHITE)
         row_f.pack(fill="x")
-        for lbl_t, key in [("Title", "title"), ("Date (YYYY-MM-DD)", "date"), ("Time (HH:MM)", "time"), ("Location", "loc")]:
+
+        for lbl_t, key in [
+            ("Title", "title"),
+            ("Date (YYYY-MM-DD)", "date"),
+            ("Time (HH:MM)", "time"),
+            ("Location", "loc")
+        ]:
+
             col = tk.Frame(row_f, bg=BG_WHITE)
             col.pack(side="left", padx=(0, 10), expand=True, fill="x")
-            tk.Label(col, text=lbl_t, bg=BG_WHITE, fg=MUTED, font=("Segoe UI", 9)).pack(anchor="w")
-            v = tk.StringVar()
-            e = tk.Entry(col, textvariable=v)
-            style_entry(e)
-            e.pack(fill="x", ipady=5, pady=(4, 0))
-            self._fvars[key] = v
-        tb = tk.Button(cf, text="Schedule Meeting", command=self._schedule)
-        style_btn(tb, "#2e8b57", WHITE)
-        tb.pack(anchor="w", pady=(10, 0))
 
+            tk.Label(
+                col,
+                text=lbl_t,
+                bg=BG_WHITE,
+                fg=MUTED,
+                font=("Segoe UI", 9)
+            ).pack(anchor="w")
+
+            v = tk.StringVar()
+
+            e = tk.Entry(col, textvariable=v)
+
+            style_entry(e)
+
+            e.pack(fill="x", ipady=5, pady=(4, 0))
+
+            self._fvars[key] = v
+
+        # ================= BUTTONS =================
+        btn_row = tk.Frame(cf, bg=BG_WHITE)
+        btn_row.pack(anchor="w", pady=(10, 0))
+
+        self.selected_meeting_id = None
+
+        add_btn = tk.Button(
+            btn_row,
+            text="Schedule Meeting",
+            command=self._schedule
+        )
+
+        style_btn(add_btn)
+        add_btn.pack(side="left", padx=(0, 8))
+
+        upd_btn = tk.Button(
+            btn_row,
+            text="Update Meeting",
+            command=self._update_meeting
+        )
+
+        style_btn(upd_btn, ORANGE, WHITE)
+        upd_btn.pack(side="left", padx=(0, 8))
+
+        del_btn = tk.Button(
+            btn_row,
+            text="Cancel Meeting",
+            command=self._delete_meeting
+        )
+
+        style_btn(del_btn, DANGER, WHITE)
+        del_btn.pack(side="left")
+
+        approve_btn = tk.Button(
+            btn_row,
+            text="Approve Meeting",
+            command=self._approve_meeting
+        )
+
+        style_btn(approve_btn, GREEN, WHITE)
+        approve_btn.pack(side="left", padx=(8, 0))
+
+        clear_btn = tk.Button(
+            btn_row,
+            text="Clear Past Meetings",
+            command=self._clear_old_meetings
+        )
+
+        style_btn(clear_btn, DARK, WHITE)
+        clear_btn.pack(side="left", padx=(8, 0))
+
+        # ================= TABLE =================
         lf = card_frame(self, padx=0, pady=0)
         lf.pack(fill="both", expand=True, padx=20, pady=12)
-        tk.Label(lf, text="All Meetings", bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
+
+        tk.Label(
+            lf,
+            text="All Meetings",
+            bg=BG_WHITE,
+            fg=DARK,
+            font=("Segoe UI", 11, "bold")
+        ).pack(anchor="w", padx=14, pady=(10, 6))
+
         tk.Frame(lf, bg=BORDER, height=1).pack(fill="x")
 
         tree_frame = tk.Frame(lf, bg=BG_WHITE)
         tree_frame.pack(fill="both", expand=True, padx=8, pady=(8, 0))
-        cols = ("Student", "Title", "Date", "Time", "Status", "Location")
-        self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings", height=7)
-        style_treeview(self.tree, cols, [130, 150, 90, 70, 90, 130])
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+
+        cols = (
+            "Student",
+            "Title",
+            "Date",
+            "Time",
+            "Status",
+            "Location"
+        )
+
+        self.tree = ttk.Treeview(
+            tree_frame,
+            columns=cols,
+            show="headings",
+            height=10
+        )
+
+        style_treeview(
+            self.tree,
+            cols,
+            [140, 180, 100, 80, 120, 140]
+        )
+
+        vsb = ttk.Scrollbar(
+            tree_frame,
+            orient="vertical",
+            command=self.tree.yview
+        )
+
         self.tree.configure(yscrollcommand=vsb.set)
+
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        af = tk.Frame(lf, bg=BG_WHITE, pady=6)
-        af.pack(fill="x", padx=8, pady=(0, 8))
-        for txt, st, col in [("✓ Confirm", "Confirmed", GREEN),
-                              ("✗ Decline", "Declined",  DANGER),
-                              ("Cancel",    "Cancelled", WARNING)]:
-            b = tk.Button(af, text=txt, command=lambda s=st: self._update_status(s))
-            style_btn(b, col, WHITE)
-            b.pack(side="left", padx=4)
+        self.tree.bind(
+            "<<TreeviewSelect>>",
+            self._fill_form
+        )
+
+        # ================= REQUEST BUTTON =================
+        af = tk.Frame(lf, bg=BG_WHITE, pady=8)
+        af.pack(fill="x", padx=8)
+
+        confirm_btn = tk.Button(
+            af,
+            text="Confirm / Cancel Request",
+            command=self._update_status
+        )
+
+        style_btn(confirm_btn, GREEN, WHITE)
+        confirm_btn.pack(side="left", padx=4)
+
         self._load(sid)
 
+    # ======================================================
+    def _validate_meeting_inputs(self):
+
+        import re
+        from datetime import datetime
+
+        title = self._fvars["title"].get().strip()
+        date = self._fvars["date"].get().strip()
+        time = self._fvars["time"].get().strip()
+        loc = self._fvars["loc"].get().strip()
+
+        if not title or not date or not time or not loc:
+
+            messagebox.showwarning(
+                "Missing",
+                "Title, date, time and location are required."
+            )
+
+            return False
+
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+
+            messagebox.showwarning(
+                "Invalid Date",
+                "Enter date again in YYYY-MM-DD format."
+            )
+
+            return False
+
+        try:
+
+            meeting_date = datetime.strptime(
+                date,
+                "%Y-%m-%d"
+            )
+
+        except:
+
+            messagebox.showwarning(
+                "Invalid Date",
+                "Enter date again in YYYY-MM-DD format."
+            )
+
+            return False
+
+        if meeting_date.year < 2026:
+
+            messagebox.showwarning(
+                "Invalid Date",
+                "Enter date again starting from year 2026."
+            )
+
+            return False
+
+        if not re.match(r"^\d{2}:\d{2}$", time):
+
+            messagebox.showwarning(
+                "Invalid Time",
+                "Enter time again in HH:MM format."
+            )
+
+            return False
+
+        try:
+
+            datetime.strptime(
+                time,
+                "%H:%M"
+            )
+
+        except:
+
+            messagebox.showwarning(
+                "Invalid Time",
+                "Enter time again in HH:MM format."
+            )
+
+            return False
+
+        return True
+
+    # ======================================================
     def _load(self, sid):
+
         for r in self.tree.get_children():
             self.tree.delete(r)
-        self.meet_map.clear()
-        rows = query("""SELECT m.meeting_id, st.full_name, m.title,
-                               m.meeting_date, m.meeting_time, m.status, m.location,
-                               m.student_id
-                        FROM meetings m
-                        JOIN students st ON m.student_id=st.student_id
-                        WHERE m.supervisor_id=%s ORDER BY m.meeting_date DESC""", (sid,)) or []
-        for r in rows:
-            iid = self.tree.insert("", "end", values=(
-                r["full_name"], r["title"],
-                str(r["meeting_date"])[:10], str(r["meeting_time"])[:5],
-                r["status"], r["location"] or "—"))
-            self.meet_map[iid] = (r["meeting_id"], r["student_id"])
 
+        self.meet_map.clear()
+
+        rows = query("""
+            SELECT
+                m.meeting_id,
+                st.student_id,
+                st.full_name,
+                m.title,
+                m.meeting_date,
+                m.meeting_time,
+                m.status,
+                m.location
+            FROM meetings m
+            JOIN students st
+                ON m.student_id = st.student_id
+            WHERE m.supervisor_id=%s
+            ORDER BY m.meeting_date DESC
+        """, (sid,)) or []
+
+        for r in rows:
+
+            iid = self.tree.insert(
+                "",
+                "end",
+                values=(
+                    r["full_name"],
+                    r["title"],
+                    str(r["meeting_date"])[:10],
+                    str(r["meeting_time"])[:5],
+                    r["status"],
+                    r["location"] or "—"
+                )
+            )
+
+            self.meet_map[iid] = {
+                "meeting_id": r["meeting_id"],
+                "student_id": r["student_id"],
+                "status": r["status"]
+            }
+
+    # ======================================================
+    def _fill_form(self, event=None):
+
+        sel = self.tree.selection()
+
+        if not sel:
+            return
+
+        iid = sel[0]
+
+        values = self.tree.item(iid, "values")
+
+        self.selected_meeting_id = self.meet_map[iid]["meeting_id"]
+
+        self.stu_var.set(values[0])
+
+        self._fvars["title"].set(values[1])
+        self._fvars["date"].set(values[2])
+        self._fvars["time"].set(values[3])
+        self._fvars["loc"].set(values[5])
+
+    # ======================================================
     def _schedule(self):
-        sid   = SESSION["user_id"]
+
+        sid = SESSION["user_id"]
+
         sname = self.stu_var.get()
+
         if not sname:
-            messagebox.showwarning("Missing", "Please select a student.")
+            messagebox.showwarning(
+                "Missing",
+                "Please select a student."
+            )
             return
-        st_id = self._stu_map[sname]
+
+        if not self._validate_meeting_inputs():
+            return
+
         title = self._fvars["title"].get().strip()
-        date  = self._fvars["date"].get().strip()
-        time  = self._fvars["time"].get().strip()
-        loc   = self._fvars["loc"].get().strip()
-        if not title or not date or not time:
-            messagebox.showwarning("Missing", "Title, date and time are required.")
-            return
-        query("""INSERT INTO meetings
-                 (supervisor_id, student_id, title, meeting_date, meeting_time,
-                  location, requested_by, status)
-                 VALUES (%s,%s,%s,%s,%s,%s,'supervisor','Scheduled')""",
-              (sid, st_id, title, date, time, loc))
-        create_notification("student", st_id, "meeting",
-                            "Meeting Scheduled",
-                            f"{SESSION['name']} scheduled a meeting on {date} at {time}")
-        messagebox.showinfo("Scheduled", "Meeting scheduled!")
-        for v in self._fvars.values():
-            v.set("")
+        date = self._fvars["date"].get().strip()
+        time = self._fvars["time"].get().strip()
+        loc = self._fvars["loc"].get().strip()
+
+        # ================= ALL STUDENTS =================
+        if self._stu_map[sname] == "all":
+
+            students = query("""
+                SELECT student_id
+                FROM students
+                WHERE supervisor_id=%s
+            """, (sid,)) or []
+
+            for st in students:
+
+                query("""
+                    INSERT INTO meetings
+                    (
+                        supervisor_id,
+                        student_id,
+                        title,
+                        meeting_date,
+                        meeting_time,
+                        location,
+                        requested_by,
+                        status
+                    )
+                    VALUES
+                    (%s,%s,%s,%s,%s,%s,'supervisor','Scheduled')
+                """, (
+                    sid,
+                    st["student_id"],
+                    title,
+                    date,
+                    time,
+                    loc
+                ))
+
+                create_notification(
+                    "student",
+                    st["student_id"],
+                    "meeting",
+                    "Meeting Scheduled",
+                    f"{SESSION['name']} scheduled a meeting on {date} at {time}.\nTOPIC: {title}"
+                )
+
+            messagebox.showinfo(
+                "Success",
+                "Meeting scheduled for all students."
+            )
+
+        # ================= ONE STUDENT =================
+        else:
+
+            st_id = self._stu_map[sname]
+
+            query("""
+                INSERT INTO meetings
+                (
+                    supervisor_id,
+                    student_id,
+                    title,
+                    meeting_date,
+                    meeting_time,
+                    location,
+                    requested_by,
+                    status
+                )
+                VALUES
+                (%s,%s,%s,%s,%s,%s,'supervisor','Scheduled')
+            """, (
+                sid,
+                st_id,
+                title,
+                date,
+                time,
+                loc
+            ))
+
+            create_notification(
+                "student",
+                st_id,
+                "meeting",
+                "Meeting Scheduled",
+                f"{SESSION['name']} scheduled a meeting on {date} at {time}.\nTOPIC: {title}"
+            )
+
+            messagebox.showinfo(
+                "Success",
+                "Meeting scheduled successfully."
+            )
+
+        self._clear_form()
         self._load(sid)
 
-    def _update_status(self, status):
+    # ======================================================
+    def _update_meeting(self):
+
+        if not self.selected_meeting_id:
+            messagebox.showwarning(
+                "Select",
+                "Please select a meeting."
+            )
+            return
+
+        if not self._validate_meeting_inputs():
+            return
+
         sel = self.tree.selection()
+
         if not sel:
-            messagebox.showwarning("Select", "Please select a meeting.")
             return
-        mid, st_id = self.meet_map.get(sel[0], (None, None))
-        if not mid:
-            return
-        query("UPDATE meetings SET status=%s WHERE meeting_id=%s", (status, mid))
-        create_notification("student", st_id, "meeting",
-                            f"Meeting {status}",
-                            f"Your meeting was {status.lower()} by {SESSION['name']}")
+
+        iid = sel[0]
+
+        st_id = self.meet_map[iid]["student_id"]
+
+        title = self._fvars["title"].get().strip()
+        date = self._fvars["date"].get().strip()
+        time = self._fvars["time"].get().strip()
+        loc = self._fvars["loc"].get().strip()
+
+        query("""
+            UPDATE meetings
+            SET title=%s,
+                meeting_date=%s,
+                meeting_time=%s,
+                location=%s
+            WHERE meeting_id=%s
+        """, (
+            title,
+            date,
+            time,
+            loc,
+            self.selected_meeting_id
+        ))
+
+        create_notification(
+            "student",
+            st_id,
+            "meeting",
+            "Meeting Updated",
+            f"{SESSION['name']} updated your meeting.\nTOPIC: {title}"
+        )
+
+        messagebox.showinfo(
+            "Updated",
+            "Meeting updated successfully."
+        )
+
+        self._clear_form()
         self._load(SESSION["user_id"])
 
+    # ======================================================
+    def _delete_meeting(self):
 
+        sel = self.tree.selection()
+
+        if not sel:
+            messagebox.showwarning(
+                "Select",
+                "Please select a meeting."
+            )
+            return
+
+        confirm = messagebox.askyesno(
+            "Delete Meeting",
+            "Are you sure you want to cancel this meeting?"
+        )
+
+        if not confirm:
+            return
+
+        iid = sel[0]
+
+        mid = self.meet_map[iid]["meeting_id"]
+        st_id = self.meet_map[iid]["student_id"]
+
+        title = self.tree.item(iid, "values")[1]
+
+        query(
+            "DELETE FROM meetings WHERE meeting_id=%s",
+            (mid,)
+        )
+
+        create_notification(
+            "student",
+            st_id,
+            "meeting",
+            "Meeting Deleted",
+            f"{SESSION['name']} cancelled your meeting.\nTOPIC: {title}"
+        )
+
+        messagebox.showinfo(
+            "Deleted",
+            "Meeting cancelled successfully."
+        )
+
+        self._clear_form()
+        self._load(SESSION["user_id"])
+
+    # ======================================================
+    def _update_status(self):
+
+        sel = self.tree.selection()
+
+        if not sel:
+            messagebox.showwarning(
+                "Select",
+                "Please select a meeting."
+            )
+            return
+
+        iid = sel[0]
+
+        meeting = self.meet_map[iid]
+
+        title = self.tree.item(iid, "values")[1]
+
+        if meeting["status"] != "Requested":
+
+            messagebox.showwarning(
+                "Invalid",
+                "Only requested meetings can be confirmed."
+            )
+
+            return
+
+        confirm = messagebox.askyesno(
+            "Confirm Meeting",
+            "Do you want to confirm this meeting request?"
+        )
+
+        # ================= YES =================
+        if confirm:
+
+            new_status = "Scheduled"
+
+            notif_title = "Meeting Accepted"
+
+            notif_msg = (
+                f"{SESSION['name']} accepted your meeting request.\nTOPIC: {title}"
+            )
+
+        # ================= NO =================
+        else:
+
+            new_status = "Cancelled"
+
+            notif_title = "Meeting Cancelled"
+
+            notif_msg = (
+                f"{SESSION['name']} cancelled your meeting request.\nTOPIC: {title}"
+            )
+
+        query(
+            "UPDATE meetings SET status=%s WHERE meeting_id=%s",
+            (
+                new_status,
+                meeting["meeting_id"]
+            )
+        )
+
+        create_notification(
+            "student",
+            meeting["student_id"],
+            "meeting",
+            notif_title,
+            notif_msg
+        )
+
+        messagebox.showinfo(
+            "Updated",
+            f"Meeting marked as {new_status}."
+        )
+
+        self._load(SESSION["user_id"])
+
+    # ======================================================
+    def _approve_meeting(self):
+
+        sel = self.tree.selection()
+
+        if not sel:
+            messagebox.showwarning(
+                "Select",
+                "Please select a meeting."
+            )
+            return
+
+        iid = sel[0]
+
+        meeting = self.meet_map[iid]
+
+        title = self.tree.item(iid, "values")[1]
+
+        if meeting["status"] != "Requested":
+
+            messagebox.showwarning(
+                "Invalid",
+                "Only requested meetings can be approved."
+            )
+            return
+
+        query("""
+            UPDATE meetings
+            SET status=%s
+            WHERE meeting_id=%s
+        """, (
+            "Scheduled",
+            meeting["meeting_id"]
+        ))
+
+        create_notification(
+            "student",
+            meeting["student_id"],
+            "meeting",
+            "Meeting Approved",
+            f"{SESSION['name']} approved your meeting request.\nTOPIC: {title}"
+        )
+
+        messagebox.showinfo(
+            "Success",
+            "You successfully approved the meeting."
+        )
+
+        self._load(SESSION["user_id"])
+
+    # ======================================================
+    def _clear_old_meetings(self):
+
+        from datetime import date
+
+        sid = SESSION["user_id"]
+
+        confirm = messagebox.askyesno(
+            "Clear Meetings",
+            "Delete all meetings from yesterday and older?"
+        )
+
+        if not confirm:
+            return
+
+        query("""
+            DELETE FROM meetings
+            WHERE supervisor_id=%s
+            AND meeting_date < %s
+        """, (
+            sid,
+            date.today()
+        ))
+
+        messagebox.showinfo(
+            "Success",
+            "Past meetings cleared successfully."
+        )
+
+        self._load(sid)
+
+    # ======================================================
+    def _clear_form(self):
+
+        self.selected_meeting_id = None
+
+        self.stu_var.set("")
+
+        for v in self._fvars.values():
+            v.set("")
 # ═══════════════════════════════════════════════════════════
 class SupervisorMessages(tk.Frame):
     def __init__(self, parent):
@@ -643,37 +1327,137 @@ class SupervisorMessages(tk.Frame):
 class SupervisorNotifications(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
+
         page_header(self, "Notifications", "Your alerts and updates")
+
+        self.filter_type = "all"   # all | meeting | submission
         self._build()
 
+    # ======================================================
     def _build(self):
-        sid  = SESSION["user_id"]
-        rows = query("""SELECT * FROM notifications
-                        WHERE user_role='supervisor' AND user_id=%s
-                        ORDER BY delivered_at DESC""", (sid,)) or []
-        query("UPDATE notifications SET is_read=1 WHERE user_role='supervisor' AND user_id=%s", (sid,))
-        sf = ScrollFrame(self, bg=BG_MAIN)
-        sf.pack(fill="both", expand=True, padx=20, pady=12)
+
+        sid = SESSION["user_id"]
+
+        # ---------------- TOP ACTION BAR ----------------
+        top_bar = tk.Frame(self, bg=BG_MAIN)
+        top_bar.pack(fill="x", padx=20, pady=(5, 10))
+
+        def set_filter(f):
+            self.filter_type = f
+            self.refresh()
+
+        tk.Button(top_bar, text="All", command=lambda: set_filter("all")).pack(side="left", padx=5)
+        tk.Button(top_bar, text="Meetings", command=lambda: set_filter("meeting")).pack(side="left", padx=5)
+        tk.Button(top_bar, text="Submissions", command=lambda: set_filter("submission")).pack(side="left", padx=5)
+
+        tk.Button(
+            top_bar,
+            text="Clear All",
+            bg="#ff4d4d",
+            fg="white",
+            command=self.clear_all
+        ).pack(side="right", padx=5)
+
+        # ---------------- NOTIFICATIONS LOAD ----------------
+        self.sf = ScrollFrame(self, bg=BG_MAIN)
+        self.sf.pack(fill="both", expand=True, padx=20, pady=12)
+
+        self.refresh()
+
+    # ======================================================
+    def refresh(self):
+
+        sid = SESSION["user_id"]
+
+        # base query
+        sql = """
+            SELECT * FROM notifications
+            WHERE user_role='supervisor' AND user_id=%s
+        """
+
+        params = [sid]
+
+        if self.filter_type in ("meeting", "submission"):
+            sql += " AND type=%s"
+            params.append(self.filter_type)
+
+        sql += " ORDER BY delivered_at DESC"
+
+        rows = query(sql, tuple(params)) or []
+
+        # mark as read
+        query("""
+            UPDATE notifications
+            SET is_read=1
+            WHERE user_role='supervisor' AND user_id=%s
+        """, (sid,))
+
+        # clear frame
+        for w in self.sf.inner.winfo_children():
+            w.destroy()
+
         if not rows:
-            tk.Label(sf.inner, text="No notifications yet.",
-                     bg=BG_MAIN, fg=MUTED, font=("Segoe UI", 11)).pack(pady=20)
+            tk.Label(
+                self.sf.inner,
+                text="No notifications yet.",
+                bg=BG_MAIN,
+                fg=MUTED,
+                font=("Segoe UI", 11)
+            ).pack(pady=20)
             return
-        TYPE_ICONS = {"meeting": "📅", "message": "✉", "submission": "📄",
-                      "deadline": "⏰", "milestone": "🎯"}
+
+        TYPE_ICONS = {
+            "meeting": "📅",
+            "message": "✉",
+            "submission": "📄",
+            "deadline": "⏰",
+            "milestone": "🎯"
+        }
+
         for r in rows:
-            nf = card_frame(sf.inner, padx=14, pady=10)
+            nf = card_frame(self.sf.inner, padx=14, pady=10)
             nf.pack(fill="x", pady=3)
+
             top = tk.Frame(nf, bg=BG_WHITE)
             top.pack(fill="x")
+
             icon = TYPE_ICONS.get(r["type"], "🔔")
-            tk.Label(top, text=f"{icon}  {r['title']}",
-                     bg=BG_WHITE, fg=DARK,
-                     font=("Segoe UI", 11, "bold")).pack(side="left")
-            tk.Label(top, text=str(r["delivered_at"])[:16],
-                     bg=BG_WHITE, fg=MUTED,
-                     font=("Segoe UI", 9)).pack(side="right")
-            tk.Label(nf, text=r["message"], bg=BG_WHITE, fg=TEXT2,
-                     font=("Segoe UI", 10)).pack(anchor="w", pady=(4, 0))
+
+            tk.Label(
+                top,
+                text=f"{icon}  {r['title']}",
+                bg=BG_WHITE,
+                fg=DARK,
+                font=("Segoe UI", 11, "bold")
+            ).pack(side="left")
+
+            tk.Label(
+                top,
+                text=str(r["delivered_at"])[:16],
+                bg=BG_WHITE,
+                fg=MUTED,
+                font=("Segoe UI", 9)
+            ).pack(side="right")
+
+            tk.Label(
+                nf,
+                text=r["message"],
+                bg=BG_WHITE,
+                fg=TEXT2,
+                font=("Segoe UI", 10)
+            ).pack(anchor="w", pady=(4, 0))
+
+    # ======================================================
+    def clear_all(self):
+
+        sid = SESSION["user_id"]
+
+        query("""
+            DELETE FROM notifications
+            WHERE user_role='supervisor' AND user_id=%s
+        """, (sid,))
+
+        self.refresh()
 
 
 # ═══════════════════════════════════════════════════════════

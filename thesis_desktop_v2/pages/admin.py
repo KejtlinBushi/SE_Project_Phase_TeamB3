@@ -294,10 +294,8 @@ class AdminUsers(tk.Frame):
 
     # ── keep buttons aligned when tree scrolls ───────────────
     def _sync_scroll(self, event):
-        # Repack buttons in same order as visible tree rows
         for btn in self._btn_map.values():
             btn.pack_forget()
-        # Header stays
         for child in self._del_col.winfo_children():
             if isinstance(child, tk.Label):
                 child.pack(fill="x")
@@ -307,7 +305,7 @@ class AdminUsers(tk.Frame):
                 self._btn_map[iid].pack(fill="x")
 
     def _on_select(self, event):
-        pass  # could highlight corresponding button if desired
+        pass
 
     # ── actions ──────────────────────────────────────────────
     def _delete_row(self, iid):
@@ -356,7 +354,6 @@ class AdminUsers(tk.Frame):
         if role == "admin":
             messagebox.showinfo("Info", "Use the Profile page to edit admin accounts.")
             return
-        # Edit dialog
         dlg = EditUserDialog(self.master, uid, role, old_name, old_email)
         self.wait_window(dlg)
         self._load()
@@ -505,7 +502,6 @@ class AdminAssignments(tk.Frame):
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        # Revoke button
         tk.Button(lf, text="Revoke Selected Assignment",
                   command=self._revoke,
                   bg=DANGER, fg=WHITE, relief="flat",
@@ -564,35 +560,419 @@ class AdminAssignments(tk.Frame):
 
 
 # ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 class AdminActivityLog(tk.Frame):
+
+
+    _PAIR_COLORS = [
+        "#c0392b", "#e67e22", "#f39c12", "#27ae60", "#16a085",
+        "#b9b229", "#8e44ad", "#2c3e50", "#d35400", "#1abc9c",
+        "#e73cc2", "#e91e63", "#9c27b0", "#673ab7", "#3f51b5",
+        "#0288d1", "#00796b", "#558b2f", "#5f3714", "#341b12",
+    ]
+
+    _DAYS  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    _HOURS = [f"{h:02d}:00" for h in range(8, 16)]  # 08:00 – 16:00
+
+    _DAY_W  = 110
+    _SLOT_W = 120
+    _ROW_H  = 90
+    _HDR_H  = 36
+
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
-        page_header(self, "Activity Log", "Full system audit trail")
+        page_header(self, "Meeting Schedule", "All student-supervisor meetings")
+        self._pair_color_map: dict = {}
+        self._color_idx = 0
         self._build()
 
-    def _build(self):
-        f = card_frame(self, padx=0, pady=0)
-        f.pack(fill="both", expand=True, padx=20, pady=12)
-        tk.Label(f, text="All Activity", bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
-        tk.Frame(f, bg=BORDER, height=1).pack(fill="x")
-        cols = ("Role", "User ID", "Action", "Description", "Time")
-        tree_f = tk.Frame(f, bg=BG_WHITE)
-        tree_f.pack(fill="both", expand=True, padx=8, pady=8)
-        tree = ttk.Treeview(tree_f, columns=cols, show="headings", height=18)
-        style_treeview(tree, cols, [80, 60, 120, 340, 130])
-        vsb = ttk.Scrollbar(tree_f, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=vsb.set)
-        tree.pack(side="left", fill="both", expand=True)
-        vsb.pack(side="right", fill="y")
-        rows = query("""SELECT actor_role, actor_id, action_type, description, logged_at
-                        FROM activity_log ORDER BY logged_at DESC LIMIT 300""") or []
-        for r in rows:
-            tree.insert("", "end", values=(
-                r["actor_role"], r["actor_id"] or "—",
-                r["action_type"], r["description"],
-                str(r["logged_at"])[:16]))
+    def _get_pair_color(self, student_id, supervisor_id):
+        key = (student_id, supervisor_id)
+        if key not in self._pair_color_map:
+            self._pair_color_map[key] = self._PAIR_COLORS[
+                self._color_idx % len(self._PAIR_COLORS)]
+            self._color_idx += 1
+        return self._pair_color_map[key]
 
+    def _fetch_meetings(self):
+        return query("""
+            SELECT
+                m.meeting_id,
+                m.meeting_date,
+                m.meeting_time,
+                m.title,
+                m.status,
+                m.meeting_type,
+                m.student_id,
+                m.supervisor_id,
+                st.full_name  AS student_name,
+                sup.full_name AS supervisor_name
+            FROM meetings m
+            JOIN students    st  ON m.student_id    = st.student_id
+            JOIN supervisors sup ON m.supervisor_id = sup.supervisor_id
+            ORDER BY m.meeting_date, m.meeting_time
+        """) or []
+
+    def _build(self):
+        try:
+            meetings = self._fetch_meetings()
+        except Exception as e:
+            tk.Label(self, text=f"Database error: {e}",
+                     bg=BG_MAIN, fg=DANGER,
+                     font=("Segoe UI", 11)).pack(pady=30)
+            return
+
+        # ── legend label ─────────────────────────────────────
+        top = tk.Frame(self, bg=BG_MAIN)
+        top.pack(fill="x", padx=20, pady=(8, 0))
+        tk.Label(top,
+                    text="Legend: Each color represents a student-supervisor pair.",
+                 bg=BG_MAIN, fg=MUTED,
+                 font=("Segoe UI", 9, "italic")).pack(side="left")
+
+        if not meetings:
+            tk.Label(self, text="Nuk ka takime të planifikuara.",
+                     bg=BG_MAIN, fg=MUTED,
+                     font=("Segoe UI", 12)).pack(pady=40)
+            return
+
+        # ── scrollable canvas ─────────────────────────────────
+        outer = tk.Frame(self, bg=BG_MAIN)
+        outer.pack(fill="both", expand=True, padx=20, pady=10)
+
+        total_w = self._DAY_W + self._SLOT_W * len(self._HOURS) + 4
+        total_h = self._HDR_H + self._ROW_H  * len(self._DAYS)  + 4
+
+        hscroll = ttk.Scrollbar(outer, orient="horizontal")
+        vscroll = ttk.Scrollbar(outer, orient="vertical")
+        hscroll.pack(side="bottom", fill="x")
+        vscroll.pack(side="right",  fill="y")
+
+        self._canvas = tk.Canvas(
+            outer,
+            bg=BG_WHITE,
+            width=min(total_w, 1100),
+            height=min(total_h, 520),
+            scrollregion=(0, 0, total_w, total_h),
+            xscrollcommand=hscroll.set,
+            yscrollcommand=vscroll.set,
+            highlightthickness=0,
+        )
+        self._canvas.pack(side="left", fill="both", expand=True)
+        hscroll.config(command=self._canvas.xview)
+        vscroll.config(command=self._canvas.yview)
+
+        self._canvas.bind("<MouseWheel>",
+            lambda e: self._canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+        self._canvas.bind("<Shift-MouseWheel>",
+            lambda e: self._canvas.xview_scroll(int(-1*(e.delta/120)), "units"))
+
+        try:
+            self._draw_grid()
+            self._draw_meetings(meetings)
+        except Exception as e:
+            tk.Label(self, text=f"Render error: {e}",
+                     bg=BG_MAIN, fg=DANGER,
+                     font=("Segoe UI", 10)).pack(pady=10)
+
+        self._draw_legend(meetings)
+
+    def _draw_grid(self):
+        c  = self._canvas
+        dw = self._DAY_W
+        sw = self._SLOT_W
+        rh = self._ROW_H
+        hh = self._HDR_H
+
+        # ── header: top-left corner ───────────────────────────
+        c.create_rectangle(0, 0, dw, hh, fill="#1b3a6b", outline="#0d2247")
+        c.create_text(dw//2, hh//2, text="Day  /  Time",
+                      fill=WHITE, font=("Segoe UI", 9, "bold"))
+
+        # ── hour headers ──────────────────────────────────────
+        for i, h in enumerate(self._HOURS):
+            x0 = dw + i * sw
+            x1 = x0 + sw
+            # alternating header shade
+            hdr_bg = "#1b3a6b" if i % 2 == 0 else "#1e4080"
+            c.create_rectangle(x0, 0, x1, hh, fill=hdr_bg, outline="#0d2247")
+            # range label e.g. "09:00 – 10:00"
+            hr_int = 8 + i
+            label_text = f"{hr_int:02d}:00 – {hr_int+1:02d}:00"
+            c.create_text((x0+x1)//2, hh//2, text=label_text,
+                          fill=WHITE, font=("Segoe UI", 8, "bold"))
+
+        # ── day rows ──────────────────────────────────────────
+        for j, day in enumerate(self._DAYS):
+            y0 = hh + j * rh
+            y1 = y0 + rh
+            day_bg = "#f0f4fa" if j % 2 == 0 else "#e8eef8"
+
+            # day label cell
+            c.create_rectangle(0, y0, dw, y1,
+                               fill="#1b3a6b", outline="#0d2247")
+            c.create_text(dw//2, (y0+y1)//2, text=day,
+                          fill=WHITE, font=("Segoe UI", 10, "bold"))
+
+            # hour slot cells
+            for i in range(len(self._HOURS)):
+                x0 = dw + i * sw
+                x1 = x0 + sw
+                cell_bg = "#f7f9fd" if (i + j) % 2 == 0 else "#eef2fa"
+                c.create_rectangle(x0, y0, x1, y1,
+                                   fill=cell_bg, outline="#d0d8e8")
+
+    def _draw_meetings(self, meetings):
+        import datetime as _dt
+
+        c  = self._canvas
+        dw = self._DAY_W
+        sw = self._SLOT_W
+        rh = self._ROW_H
+        hh = self._HDR_H
+
+        cell_counts: dict = {}
+
+        for m in meetings:
+            try:
+                # ── parse date ───────────────────────────────
+                md = m["meeting_date"]
+                mt = m["meeting_time"]
+                if md is None or mt is None:
+                    continue
+
+                # meeting_date may be a date object or string
+                if hasattr(md, "weekday"):
+                    wd = md.weekday()
+                else:
+                    md = _dt.date.fromisoformat(str(md))
+                    wd = md.weekday()
+
+                # meeting_time may be timedelta (MySQL) or time or string
+                if hasattr(mt, "seconds"):          # timedelta
+                    total = int(mt.total_seconds())
+                    hr    = total // 3600
+                    minute = (total % 3600) // 60
+                elif hasattr(mt, "hour"):            # time object
+                    hr     = mt.hour
+                    minute = mt.minute
+                else:                                # string "HH:MM:SS"
+                    parts  = str(mt).split(":")
+                    hr     = int(parts[0])
+                    minute = int(parts[1]) if len(parts) > 1 else 0
+
+                if wd >= len(self._DAYS):
+                    continue
+                col_idx = hr - 8
+                if col_idx < 0 or col_idx >= len(self._HOURS):
+                    continue
+
+                color = self._get_pair_color(m["student_id"], m["supervisor_id"])
+
+                y0_row = hh + wd * rh
+                x0_col = dw + col_idx * sw
+
+                cell_key = (wd, col_idx)
+                stack    = cell_counts.get(cell_key, 0)
+                cell_counts[cell_key] = stack + 1
+
+                # ── block geometry ────────────────────────────
+                max_stack   = 3
+                block_h     = max(18, (rh - 8) // max(1, stack + 1))
+                y0_blk      = y0_row + 4 + stack * block_h
+                y1_blk      = y0_blk + block_h - 3
+                x0_blk      = x0_col + 4
+                x1_blk      = x0_col + sw - 4
+
+                r_tag = f"meet_{m['meeting_id']}"
+
+                # rounded rect with slight shadow
+                self._rounded_rect(c, x0_blk+2, y0_blk+2, x1_blk+2, y1_blk+2,
+                                   radius=7,
+                                   fill=self._darken(color, 0.6),
+                                   outline="", tags=r_tag)
+                self._rounded_rect(c, x0_blk, y0_blk, x1_blk, y1_blk,
+                                   radius=7,
+                                   fill=color, outline="", tags=r_tag)
+
+                cx = (x0_blk + x1_blk) // 2
+                sup_short   = self._shorten(m["supervisor_name"], 16)
+                stu_short   = self._shorten(m["student_name"],    16)
+                title_short = self._shorten(m.get("title") or "", 18)
+                time_str    = f"{hr:02d}:{minute:02d}"
+                type_icon   = "💻" if m.get("meeting_type") == "online" else "🏫"
+
+                # status badge colour
+                status      = (m.get("status") or "").lower()
+                badge_color = {"confirmed": "#27ae60",
+                               "scheduled": "#2980b9",
+                               "pending":   "#f39c12",
+                               "declined":  "#c0392b",
+                               "cancelled": "#7f8c8d"}.get(status, "#555")
+
+                line_h = max(11, (y1_blk - y0_blk) // 4)
+
+                # Line 1 – supervisor (bold white)
+                c.create_text(cx, y0_blk + line_h,
+                              text=sup_short,
+                              fill=WHITE,
+                              font=("Segoe UI", 8, "bold"),
+                              width=sw - 12, tags=r_tag)
+                # Line 2 – student (light blue)
+                c.create_text(cx, y0_blk + line_h * 2,
+                              text=f"🎓 {stu_short}",
+                              fill="#d6eaf8",
+                              font=("Segoe UI", 7),
+                              width=sw - 12, tags=r_tag)
+                # Line 3 – time + type
+                c.create_text(cx, y0_blk + line_h * 3,
+                              text=f"{type_icon} {time_str}",
+                              fill="#aed6f1",
+                              font=("Segoe UI", 7, "italic"),
+                              width=sw - 12, tags=r_tag)
+
+                # Status dot (top-right corner of block)
+                dot_x = x1_blk - 8
+                dot_y = y0_blk + 8
+                c.create_oval(dot_x-5, dot_y-5, dot_x+5, dot_y+5,
+                              fill=badge_color, outline="", tags=r_tag)
+
+                self._bind_tooltip(r_tag,
+                                   m["supervisor_name"],
+                                   m["student_name"],
+                                   str(m["meeting_date"]),
+                                   f"{hr:02d}:{minute:02d}",
+                                   m.get("title") or "—",
+                                   m.get("status") or "—",
+                                   m.get("meeting_type") or "—")
+            except Exception:
+                continue
+
+    # ── helpers ──────────────────────────────────────────────
+    @staticmethod
+    def _darken(hex_color, factor=0.75):
+        try:
+            h = hex_color.lstrip("#")
+            r, g, b = (int(h[i:i+2], 16) for i in (0, 2, 4))
+            return "#{:02x}{:02x}{:02x}".format(
+                max(0, int(r*factor)),
+                max(0, int(g*factor)),
+                max(0, int(b*factor)))
+        except Exception:
+            return hex_color
+
+    @staticmethod
+    def _rounded_rect(canvas, x1, y1, x2, y2, radius=8, **kwargs):
+        pts = [
+            x1+radius, y1,  x2-radius, y1,
+            x2, y1,         x2, y1+radius,
+            x2, y2-radius,  x2, y2,
+            x2-radius, y2,  x1+radius, y2,
+            x1, y2,         x1, y2-radius,
+            x1, y1+radius,  x1, y1,
+        ]
+        return canvas.create_polygon(pts, smooth=True, **kwargs)
+
+    @staticmethod
+    def _shorten(name: str, max_chars: int) -> str:
+        if not name:
+            return "—"
+        return name if len(name) <= max_chars else name[:max_chars-1] + "…"
+
+    def _bind_tooltip(self, tag, prof, student, date, time,
+                      title, status, mtype):
+        status_icon = {"confirmed": "✅", "scheduled": "📅",
+                       "pending": "⏳", "declined": "❌",
+                       "cancelled": "🚫"}.get(status.lower(), "📌")
+        tip_text = (f"👨‍🏫  {prof}\n"
+                    f"🎓  {student}\n"
+                    f"📅  {date}  🕐 {time}\n"
+                    f"📌  {title}\n"
+                    f"{status_icon}  {status.capitalize()}  |  "
+                    f"{'💻 Online' if mtype=='online' else '🏫 In-person'}")
+        tip_win = [None]
+
+        def show(event):
+            if tip_win[0]:
+                return
+            tw = tk.Toplevel(self)
+            tw.wm_overrideredirect(True)
+            tw.wm_geometry(f"+{event.x_root+14}+{event.y_root+12}")
+            tk.Label(tw, text=tip_text,
+                     bg="#1b3a6b", fg=WHITE,
+                     font=("Segoe UI", 9),
+                     padx=12, pady=8,
+                     justify="left",
+                     relief="flat").pack()
+            tip_win[0] = tw
+
+        def hide(event):
+            if tip_win[0]:
+                tip_win[0].destroy()
+                tip_win[0] = None
+
+        self._canvas.tag_bind(tag, "<Enter>", show)
+        self._canvas.tag_bind(tag, "<Leave>", hide)
+
+    def _draw_legend(self, meetings):
+        if not meetings:
+            return
+        lf = card_frame(self, padx=14, pady=10)
+        lf.pack(fill="x", padx=20, pady=(0, 12))
+        tk.Label(lf, text="Legjenda — Supervisor / Student",
+                 bg=BG_WHITE, fg=DARK,
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(0, 6))
+
+        # status legend
+        status_f = tk.Frame(lf, bg=BG_WHITE)
+        status_f.pack(anchor="w", pady=(0, 6))
+        for label_t, color in [("Confirmed", "#27ae60"), ("Scheduled", "#2980b9"),
+                                ("Pending", "#f39c12"),  ("Declined", "#c0392b"),
+                                ("Cancelled", "#7f8c8d")]:
+            sf = tk.Frame(status_f, bg=BG_WHITE)
+            sf.pack(side="left", padx=(0, 14))
+            dot = tk.Frame(sf, bg=color, width=10, height=10)
+            dot.pack(side="left", padx=(0, 4))
+            dot.pack_propagate(False)
+            tk.Label(sf, text=label_t, bg=BG_WHITE, fg=MUTED,
+                     font=("Segoe UI", 8)).pack(side="left")
+
+        tk.Frame(lf, bg=BORDER, height=1).pack(fill="x", pady=4)
+
+        wrap  = tk.Frame(lf, bg=BG_WHITE)
+        wrap.pack(fill="x")
+        seen  = set()
+        col   = 0
+        row_n = 0
+        COLS  = 3
+
+        for m in meetings:
+            key = (m["student_id"], m["supervisor_id"])
+            if key in seen:
+                continue
+            seen.add(key)
+            color = self._get_pair_color(m["student_id"], m["supervisor_id"])
+
+            item = tk.Frame(wrap, bg=BG_WHITE, pady=3)
+            item.grid(row=row_n, column=col, padx=(0, 20), sticky="w")
+
+            dot = tk.Frame(item, bg=color, width=14, height=14)
+            dot.pack(side="left", padx=(0, 6))
+            dot.pack_propagate(False)
+
+            txt_f = tk.Frame(item, bg=BG_WHITE)
+            txt_f.pack(side="left")
+            tk.Label(txt_f, text=m["supervisor_name"],
+                     bg=BG_WHITE, fg=DARK,
+                     font=("Segoe UI", 9, "bold")).pack(anchor="w")
+            tk.Label(txt_f, text=f"🎓 {m['student_name']}",
+                     bg=BG_WHITE, fg=MUTED,
+                     font=("Segoe UI", 8)).pack(anchor="w")
+
+            col += 1
+            if col >= COLS:
+                col   = 0
+                row_n += 1
 
 # ═══════════════════════════════════════════════════════════
 class AdminNotifications(tk.Frame):

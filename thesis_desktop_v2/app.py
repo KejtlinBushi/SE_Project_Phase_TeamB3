@@ -76,7 +76,7 @@ class AdminApp(BaseApp):
         ("dashboard",     "🏠", "Home"),
         ("users",         "👥", "Users"),
         ("assignments",   "🔗", "Assignments"),
-        ("activity",      "📋", "Activity Log"),
+        ("activity",      "📋", "Activity"),
         ("notifications", "🔔", "Notifications"),
         ("profile",       "👤", "My Profile"),
     ]
