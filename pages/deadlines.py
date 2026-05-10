@@ -142,14 +142,58 @@ class StudentDeadlines(tk.Frame):
                 tk.Frame(bar_f, bg=status_color, height=14).place(
                     in_=bar_bg, relwidth=pct, relheight=1)
 
-        # Submission status
+        # Submission status — also check milestones table for final upload
         tk.Frame(dc, bg=BORDER, height=1).pack(fill="x", padx=20, pady=(8, 16))
 
-        if dl.get("submitted_at"):
-            tk.Label(dc,
-                     text=f"✓ You submitted your work on {str(dl['submitted_at'])[:10]}",
-                     bg=bg_color, fg=GREEN,
-                     font=("Segoe UI", 11, "bold")).pack(pady=(0, 20))
+        # Check if student submitted via milestones final upload
+        ms = query("SELECT final_file_name, final_score, grade FROM milestones WHERE student_id=%s ORDER BY milestone_id ASC",
+                   (sid,), one=True)
+        final_submitted = (ms and ms.get("final_file_name")) or dl.get("submitted_at")
+
+        if final_submitted:
+            # Submission closed box
+            closed_f = tk.Frame(dc, bg="#d5f5e3",
+                                highlightthickness=1, highlightbackground=GREEN)
+            closed_f.pack(fill="x", padx=20, pady=(0, 10))
+            tk.Label(closed_f,
+                     text="✓  Submission Closed",
+                     bg="#d5f5e3", fg=GREEN,
+                     font=("Segoe UI", 12, "bold"),
+                     padx=12, pady=8).pack(anchor="w")
+            if ms and ms.get("final_file_name"):
+                tk.Label(closed_f,
+                         text=f"File: {ms['final_file_name']}",
+                         bg="#d5f5e3", fg=DARK,
+                         font=("Segoe UI", 9),
+                         padx=12, pady=2).pack(anchor="w")
+            if dl.get("submitted_at"):
+                tk.Label(closed_f,
+                         text=f"Submitted on: {str(dl['submitted_at'])[:10]}",
+                         bg="#d5f5e3", fg=DARK,
+                         font=("Segoe UI", 9),
+                         padx=12, pady=2).pack(anchor="w")
+            tk.Label(closed_f,
+                     text="You cannot upload again. Awaiting supervisor grade.",
+                     bg="#d5f5e3", fg=MUTED,
+                     font=("Segoe UI", 9),
+                     padx=12, pady=(2, 8)).pack(anchor="w")
+
+            # Show grade if available
+            if ms and ms.get("final_score") is not None:
+                gf = tk.Frame(dc, bg=bg_color)
+                gf.pack(pady=(0, 10))
+                tk.Label(gf, text=f"  Score: {ms['final_score']}/100  ",
+                         bg=BLUE, fg=WHITE,
+                         font=("Segoe UI", 12, "bold"),
+                         padx=10, pady=4).pack(side="left", padx=(0, 8))
+                if ms.get("grade"):
+                    gc = GREEN if ms["grade"] in ("A","A+","A-","Excellent") else (
+                         DANGER if ms["grade"] in ("F","Fail") else GOLD_TILE)
+                    tk.Label(gf, text=f"  Grade: {ms['grade']}  ",
+                             bg=gc, fg=WHITE,
+                             font=("Segoe UI", 12, "bold"),
+                             padx=10, pady=4).pack(side="left")
+            tk.Frame(dc, bg=bg_color, height=8).pack()
         else:
             tk.Label(dc,
                      text="You have not submitted yet. Go to Thesis Progress to upload.",

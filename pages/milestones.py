@@ -99,6 +99,17 @@ class StudentMilestones(tk.Frame):
         self._build()
 
     def _build(self):
+        try:
+            self._build_inner()
+        except Exception as e:
+            import traceback
+            tk.Label(self, text=f"Error loading milestones:\n{e}",
+                     bg=BG_MAIN, fg=DANGER,
+                     font=("Segoe UI", 10),
+                     wraplength=600, justify="left").pack(pady=20, padx=20)
+            traceback.print_exc()
+
+    def _build_inner(self):
         sid = SESSION["user_id"]
         # Get supervisor
         stu = query("SELECT supervisor_id FROM students WHERE student_id=%s", (sid,), one=True)
@@ -309,7 +320,7 @@ class StudentMilestones(tk.Frame):
                      text="Submission is closed. Awaiting supervisor grade.",
                      bg="#f0fdf4", fg=MUTED,
                      font=("Segoe UI", 9),
-                     padx=12, pady=(0, 8)).pack(anchor="w")
+                     padx=12, pady=4).pack(anchor="w", pady=(0, 8))
 
             # Show grade if available
             if graded:
@@ -409,186 +420,242 @@ class StudentMilestones(tk.Frame):
 class SupervisorMilestones(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
-        page_header(self, "Thesis Progress", "Monitor students and grade final submissions")
+        page_header(self, "Thesis Progress", "Monitor students, set deadlines and grade submissions")
+        self._sel_student_id = None
         self._build()
 
     def _build(self):
         sup_id   = SESSION["user_id"]
         students = query("SELECT student_id, full_name FROM students WHERE supervisor_id=%s",
                          (sup_id,)) or []
-
         if not students:
             tk.Label(self, text="No students assigned yet.",
                      bg=BG_MAIN, fg=MUTED,
                      font=("Segoe UI", 12)).pack(pady=40)
             return
+        self._students  = students
+        self._stu_map   = {s["full_name"]: s["student_id"] for s in students}
+        self._sup_id    = sup_id
 
-        # ── Submission deadline setter ────────────────────────
-        dl_card = card_frame(self, padx=16, pady=14)
-        dl_card.pack(fill="x", padx=20, pady=(12, 0))
-        tk.Label(dl_card, text="Final Submission Deadline",
+        # ── Student selector ──────────────────────────────────
+        sel_card = card_frame(self, padx=16, pady=12)
+        sel_card.pack(fill="x", padx=20, pady=(12, 0))
+        sf = tk.Frame(sel_card, bg=BG_WHITE)
+        sf.pack(fill="x")
+        tk.Label(sf, text="Select student:",
                  bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
-
-        # Current deadline
-        dl_row = query("""SELECT d.deadline_id, d.due_date FROM deadlines d
-                          JOIN deadline_assignments da ON d.deadline_id=da.deadline_id
-                          JOIN students st ON da.student_id=st.student_id
-                          WHERE st.supervisor_id=%s LIMIT 1""", (sup_id,), one=True)
-
-        row_f = tk.Frame(dl_card, bg=BG_WHITE)
-        row_f.pack(fill="x")
-        tk.Label(row_f, text="Date (YYYY-MM-DD):",
-                 bg=BG_WHITE, fg=MUTED,
-                 font=("Segoe UI", 9)).pack(side="left", padx=(0, 8))
-        self._dl_var = tk.StringVar(value=str(dl_row["due_date"]) if dl_row else "")
-        dl_entry = tk.Entry(row_f, textvariable=self._dl_var, width=16)
-        style_entry(dl_entry)
-        dl_entry.pack(side="left", ipady=5, padx=(0, 8))
-        tk.Button(row_f,
-                  text="Set Deadline" if not dl_row else "Update Deadline",
-                  command=lambda: self._set_deadline(students, dl_row),
+                 font=("Segoe UI", 10, "bold")).pack(side="left", padx=(0, 10))
+        self._stu_var = tk.StringVar(value=students[0]["full_name"])
+        cb = ttk.Combobox(sf, textvariable=self._stu_var,
+                          values=[s["full_name"] for s in students],
+                          state="readonly", width=28)
+        cb.pack(side="left")
+        tk.Button(sf, text="Load Student",
+                  command=self._load_student,
                   bg=BLUE, fg=WHITE, relief="flat",
                   font=("Segoe UI", 10, "bold"),
-                  padx=10, pady=4).pack(side="left")
-        if dl_row:
-            days = (dl_row["due_date"] - date.today()).days
-            col  = DANGER if days <= 1 else (WARNING if days <= 7 else GREEN)
-            tk.Label(row_f, text=f"  {days} days away",
-                     bg=BG_WHITE, fg=col,
-                     font=("Segoe UI", 10, "bold")).pack(side="left", padx=8)
+                  padx=12, pady=4).pack(side="left", padx=8)
 
-        # ── Student list ──────────────────────────────────────
-        tk.Label(self, text="My Students",
-                 bg=BG_MAIN, fg=DARK,
-                 font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=20, pady=(14, 4))
+        # Content area — filled when student selected
+        self._content = tk.Frame(self, bg=BG_MAIN)
+        self._content.pack(fill="both", expand=True, padx=20, pady=10)
+        # Auto-load first student
+        self._load_student()
 
-        sf = ScrollFrame(self, bg=BG_MAIN)
-        sf.pack(fill="both", expand=True, padx=20, pady=(0, 12))
+    def _load_student(self):
+        for w in self._content.winfo_children():
+            w.destroy()
+        sname  = self._stu_var.get()
+        st_id  = self._stu_map.get(sname)
+        if not st_id:
+            return
+        self._sel_student_id = st_id
+        sup_id = self._sup_id
+        row    = get_or_create_milestone(st_id, sup_id)
+        mid    = row["milestone_id"]
 
-        for stu in students:
-            row = get_or_create_milestone(stu["student_id"], sup_id)
-            self._student_card(sf.inner, stu, row, sup_id)
-
-    def _student_card(self, parent, stu, row, sup_id):
         raw    = row.get("phase_status") or ""
         phases = raw.split("|") if "|" in raw else ["Not Started"] * 6
         while len(phases) < 6:
             phases.append("Not Started")
         done   = sum(1 for p in phases if p == "Done")
         pct    = int(done / 6 * 100)
-        mid    = row["milestone_id"]
+        bar_col= GREEN if pct == 100 else (GOLD_TILE if pct > 0 else "#bdc3c7")
 
-        sc = card_frame(parent, padx=0, pady=0)
-        sc.pack(fill="x", pady=6)
-        # Color bar on left based on progress
-        bar_col = GREEN if pct == 100 else (GOLD_TILE if pct > 0 else "#bdc3c7")
-        tk.Frame(sc, bg=bar_col, width=6).pack(side="left", fill="y")
+        sf = ScrollFrame(self._content, bg=BG_MAIN)
+        sf.pack(fill="both", expand=True)
+        inner = sf.inner
 
-        body = tk.Frame(sc, bg=BG_WHITE, padx=14, pady=12)
-        body.pack(side="left", fill="both", expand=True)
-
-        # Header row
-        hdr = tk.Frame(body, bg=BG_WHITE)
+        # ── Progress overview card ────────────────────────────
+        pc = card_frame(inner, padx=16, pady=14)
+        pc.pack(fill="x", pady=(0, 10))
+        hdr = tk.Frame(pc, bg=BG_WHITE)
         hdr.pack(fill="x")
-        tk.Label(hdr, text=f"👤 {stu['full_name']}",
+        tk.Label(hdr, text=f"👤  {sname}",
                  bg=BG_WHITE, fg=DARK,
-                 font=("Segoe UI", 12, "bold")).pack(side="left")
-        tk.Label(hdr, text=f"{pct}% complete  ({done}/6 phases)",
+                 font=("Segoe UI", 13, "bold")).pack(side="left")
+        tk.Label(hdr, text=f"{pct}%  ({done}/6 phases complete)",
                  bg=BG_WHITE, fg=bar_col,
-                 font=("Segoe UI", 10, "bold")).pack(side="right")
-
-        # Progress bar
-        pb = tk.Frame(body, bg=BORDER, height=8)
-        pb.pack(fill="x", pady=(6, 8))
+                 font=("Segoe UI", 11, "bold")).pack(side="right")
+        pb = tk.Frame(pc, bg=BORDER, height=10)
+        pb.pack(fill="x", pady=(8, 6))
         if pct > 0:
-            tk.Frame(body, bg=bar_col, height=8).place(
+            tk.Frame(pc, bg=bar_col, height=10).place(
                 in_=pb, relwidth=pct/100, relheight=1)
 
-        # Phase mini-chips
-        chip_f = tk.Frame(body, bg=BG_WHITE)
-        chip_f.pack(fill="x", pady=(0, 8))
-        for i, (ph, st) in enumerate(zip(PHASES, phases)):
+        # Phase chips
+        chip_f = tk.Frame(pc, bg=BG_WHITE)
+        chip_f.pack(fill="x", pady=(0, 4))
+        for ph, st in zip(PHASES, phases):
             col = GREEN if st == "Done" else (BLUE if st == "In Progress" else "#bdc3c7")
-            tk.Label(chip_f, text=ph[:6],
+            tk.Label(chip_f, text=ph[:7],
                      bg=col, fg=WHITE,
-                     font=("Segoe UI", 7, "bold"),
-                     padx=4, pady=2).pack(side="left", padx=2)
+                     font=("Segoe UI", 8, "bold"),
+                     padx=5, pady=2).pack(side="left", padx=2)
 
-        # Final submission section
+        # ── Deadline for this student ─────────────────────────
+        dc = card_frame(inner, padx=16, pady=14)
+        dc.pack(fill="x", pady=(0, 10))
+        tk.Label(dc, text="Submission Deadline for this Student",
+                 bg=BG_WHITE, fg=DARK,
+                 font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
+
+        dl = query("""SELECT d.deadline_id, d.due_date FROM deadlines d
+                      JOIN deadline_assignments da ON d.deadline_id=da.deadline_id
+                      WHERE da.student_id=%s ORDER BY d.due_date ASC LIMIT 1""",
+                   (st_id,), one=True)
+
+        dl_row = tk.Frame(dc, bg=BG_WHITE)
+        dl_row.pack(fill="x")
+        if dl:
+            days = (dl["due_date"] - date.today()).days
+            dcol = DANGER if days <= 1 else (WARNING if days <= 7 else GREEN)
+            tk.Label(dl_row, text=f"Current: {dl['due_date']}",
+                     bg=BG_WHITE, fg=dcol,
+                     font=("Segoe UI", 11, "bold")).pack(side="left", padx=(0, 14))
+
+        tk.Label(dl_row, text="New date:",
+                 bg=BG_WHITE, fg=MUTED,
+                 font=("Segoe UI", 9)).pack(side="left", padx=(0, 6))
+        self._dl_var = tk.StringVar(value=str(dl["due_date"]) if dl else "")
+        dl_e = tk.Entry(dl_row, textvariable=self._dl_var, width=14)
+        style_entry(dl_e)
+        dl_e.pack(side="left", ipady=5, padx=(0, 8))
+        tk.Button(dl_row,
+                  text="Set" if not dl else "Update",
+                  command=lambda s=st_id, d=dl: self._save_deadline(s, d),
+                  bg=BLUE, fg=WHITE, relief="flat",
+                  font=("Segoe UI", 10, "bold"),
+                  padx=10, pady=4).pack(side="left")
+
+        # ── Final submission review ───────────────────────────
+        rc = card_frame(inner, padx=16, pady=14)
+        rc.pack(fill="x", pady=(0, 10))
+        tk.Label(rc, text="Final Submission",
+                 bg=BG_WHITE, fg=DARK,
+                 font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
+
         if row.get("final_file_name"):
-            ff = tk.Frame(body, bg=BG_WHITE)
-            ff.pack(fill="x", pady=(4, 0))
-            tk.Label(ff, text=f"📄 Final: {row['final_file_name']}",
-                     bg=BG_WHITE, fg=DARK,
-                     font=("Segoe UI", 9)).pack(side="left", padx=(0, 10))
+            # File submitted
+            ff = tk.Frame(rc, bg="#f0fdf4",
+                          highlightthickness=1, highlightbackground=GREEN)
+            ff.pack(fill="x", pady=(0, 10))
+            # File name + Open button on same row
+            ff_row = tk.Frame(ff, bg="#f0fdf4")
+            ff_row.pack(fill="x", padx=10, pady=6)
+            tk.Label(ff_row, text=f"✓  {row['final_file_name']}",
+                     bg="#f0fdf4", fg=GREEN,
+                     font=("Segoe UI", 10, "bold")).pack(side="left")
+            # Open document button
+            file_path = os.path.join(UPLOAD_FOLDER, row.get("final_file_path",""))
+            tk.Button(ff_row, text="📄 Open Document",
+                      command=lambda fp=file_path: self._open_doc(fp),
+                      bg=BLUE, fg=WHITE, relief="flat",
+                      font=("Segoe UI", 9, "bold"),
+                      padx=10, pady=3).pack(side="right")
 
             # Grade display
             if row.get("final_score") is not None:
-                gc = GREEN if (row.get("grade") or "") in ("A","A+","A-","Excellent") else (
-                     DANGER if (row.get("grade") or "") in ("F","Fail") else GOLD_TILE)
-                tk.Label(ff, text=f"Score: {row['final_score']}/100",
+                gf = tk.Frame(rc, bg=BG_WHITE)
+                gf.pack(anchor="w", pady=(0, 8))
+                tk.Label(gf, text=f"  Score: {row['final_score']}/100  ",
                          bg=BLUE, fg=WHITE,
-                         font=("Segoe UI", 9, "bold"),
-                         padx=6, pady=2).pack(side="left", padx=(0, 4))
+                         font=("Segoe UI", 11, "bold"),
+                         padx=10, pady=4).pack(side="left", padx=(0, 8))
                 if row.get("grade"):
-                    tk.Label(ff, text=f"Grade: {row['grade']}",
+                    gc = GREEN if row["grade"] in ("A","A+","A-","Excellent") else (
+                         DANGER if row["grade"] in ("F","Fail") else GOLD_TILE)
+                    tk.Label(gf, text=f"  Grade: {row['grade']}  ",
                              bg=gc, fg=WHITE,
-                             font=("Segoe UI", 9, "bold"),
-                             padx=6, pady=2).pack(side="left")
+                             font=("Segoe UI", 11, "bold"),
+                             padx=10, pady=4).pack(side="left")
+                if row.get("supervisor_comment"):
+                    tk.Label(rc,
+                             text=f"Your feedback: {row['supervisor_comment']}",
+                             bg=BG_WHITE, fg=DARK,
+                             font=("Segoe UI", 9),
+                             wraplength=520).pack(anchor="w", pady=(0, 8))
 
-            # Grade button
-            tk.Button(body, text="✎ Grade Final Submission",
-                      command=lambda m=mid, s=stu["student_id"]: self._grade_dialog(m, s),
+            tk.Button(rc,
+                      text="✎ Grade Final Submission" if row.get("final_score") is None else "✎ Update Grade",
+                      command=lambda m=mid, s=st_id: self._grade_dialog(m, s),
                       bg=GOLD_TILE, fg=WHITE, relief="flat",
-                      font=("Segoe UI", 9, "bold"),
-                      padx=10, pady=4).pack(anchor="w", pady=(6, 0))
+                      font=("Segoe UI", 10, "bold"),
+                      padx=12, pady=6).pack(anchor="w")
         else:
-            tk.Label(body, text="No final submission yet",
+            tk.Label(rc,
+                     text="⏳  Student has not submitted yet.",
                      bg=BG_WHITE, fg=MUTED,
-                     font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
+                     font=("Segoe UI", 10)).pack(anchor="w")
 
-    def _set_deadline(self, students, dl_row):
+    def _open_doc(self, file_path):
+        """Open the submitted thesis document with the system viewer."""
+        if not file_path or not os.path.exists(file_path):
+            messagebox.showerror("File Not Found",
+                                 f"Cannot find the file:\n{file_path}\n\n"
+                                 "Make sure the uploads folder is intact.")
+            return
+        try:
+            import sys, subprocess
+            if sys.platform == "win32":
+                os.startfile(file_path)
+            elif sys.platform == "darwin":
+                subprocess.run(["open", file_path])
+            else:
+                subprocess.run(["xdg-open", file_path])
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open file:\n{e}")
+
+    def _save_deadline(self, st_id, dl):
         date_str = self._dl_var.get().strip()
         if not date_str:
             messagebox.showwarning("Missing", "Please enter a date.")
             return
-        sup_id = SESSION["user_id"]
-        if dl_row:
-            # Update existing deadline
+        sup_id = self._sup_id
+        if dl:
             query("UPDATE deadlines SET due_date=%s WHERE deadline_id=%s",
-                  (date_str, dl_row["deadline_id"]))
-            # Notify all students
-            for stu in students:
-                notify("student", stu["student_id"], "deadline",
-                       "Deadline Updated",
-                       f"Final submission deadline updated to {date_str}")
+                  (date_str, dl["deadline_id"]))
+            notify("student", st_id, "deadline",
+                   "Deadline Updated",
+                   f"Your final submission deadline was updated to {date_str}")
             messagebox.showinfo("Updated", f"Deadline updated to {date_str}")
         else:
-            # Create new deadline
             did = query("""INSERT INTO deadlines (supervisor_id, title, due_date, description)
-                           VALUES (%s,'Final Thesis Submission',%s,'Submit your final thesis document')""",
+                           VALUES (%s,'Final Thesis Submission',%s,
+                           'Submit your final thesis document')""",
                         (sup_id, date_str))
-            for stu in students:
-                query("INSERT IGNORE INTO deadline_assignments (deadline_id, student_id) VALUES (%s,%s)",
-                      (did, stu["student_id"]))
-                notify("student", stu["student_id"], "deadline",
-                       "Submission Deadline Set",
-                       f"Your final thesis submission deadline is {date_str}")
-            messagebox.showinfo("Set", f"Deadline set to {date_str} for all your students")
-        # Rebuild
-        for w in self.winfo_children():
-            w.destroy()
-        page_header(self, "Thesis Progress", "Monitor students and grade final submissions")
-        self._build()
+            query("INSERT IGNORE INTO deadline_assignments (deadline_id, student_id) VALUES (%s,%s)",
+                  (did, st_id))
+            notify("student", st_id, "deadline",
+                   "Submission Deadline Set",
+                   f"Your final thesis submission deadline is {date_str}")
+            messagebox.showinfo("Set", f"Deadline set to {date_str}")
+        self._load_student()
 
     def _grade_dialog(self, mid, st_id):
         dlg = FinalGradeDialog(self.master, mid, st_id)
         self.wait_window(dlg)
-        for w in self.winfo_children():
-            w.destroy()
-        page_header(self, "Thesis Progress", "Monitor students and grade final submissions")
-        self._build()
+        self._load_student()
 
 
 class FinalGradeDialog(tk.Toplevel):
