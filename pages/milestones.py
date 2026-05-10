@@ -249,50 +249,95 @@ class StudentMilestones(tk.Frame):
                  bg=BG_WHITE, fg=DARK,
                  font=("Segoe UI", 12, "bold")).pack(anchor="w", pady=(0, 10))
 
-        all_done = all(p == "Done" for p in phase_list)
+        all_done    = all(p == "Done" for p in phase_list)
+        submitted   = bool(row.get("final_file_name"))   # True once submitted
+        graded      = row.get("final_score") is not None
+
         if not all_done:
+            # Phases not complete yet
             tk.Label(final_card,
                      text="⚠  Complete all 6 phases before submitting your final thesis.",
                      bg=BG_WHITE, fg=WARNING,
                      font=("Segoe UI", 10)).pack(anchor="w")
-        else:
-            # Show existing upload if any
-            if row.get("final_file_name"):
-                tk.Label(final_card,
-                         text=f"✓ Uploaded: {row['final_file_name']}",
-                         bg=BG_WHITE, fg=GREEN,
-                         font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(0, 8))
 
-            # Grade display
-            if row.get("final_score") is not None:
+        elif not submitted:
+            # All phases done — show upload + submit
+            tk.Label(final_card,
+                     text="All phases complete! Choose your thesis file then click Submit.",
+                     bg=BG_WHITE, fg=GREEN,
+                     font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(0, 10))
+
+            # File picker state
+            self._chosen_path  = tk.StringVar(value="")
+            self._chosen_label = tk.Label(final_card,
+                                          text="No file chosen",
+                                          bg=BG_WHITE, fg=MUTED,
+                                          font=("Segoe UI", 9))
+            self._chosen_label.pack(anchor="w", pady=(0, 6))
+
+            btn_row = tk.Frame(final_card, bg=BG_WHITE)
+            btn_row.pack(anchor="w")
+
+            tk.Button(btn_row, text="📁 Choose File (PDF / DOCX)",
+                      command=lambda: self._choose_file(),
+                      bg="#ecf0f1", fg=DARK, relief="flat",
+                      font=("Segoe UI", 10), padx=10, pady=6).pack(side="left", padx=(0, 10))
+
+            self._submit_btn = tk.Button(btn_row, text="✔ Submit Final Thesis",
+                      command=lambda m=mid, s=sup_id: self._submit_final(m, s),
+                      bg=GREEN, fg=WHITE, relief="flat",
+                      font=("Segoe UI", 10, "bold"), padx=14, pady=6,
+                      state="disabled")
+            self._submit_btn.pack(side="left")
+
+            tk.Label(final_card,
+                     text="⚠  Once submitted you cannot upload again.",
+                     bg=BG_WHITE, fg=DANGER,
+                     font=("Segoe UI", 9)).pack(anchor="w", pady=(10, 0))
+
+        else:
+            # Already submitted — locked
+            lock_f = tk.Frame(final_card, bg="#f0fdf4",
+                              highlightthickness=1, highlightbackground=GREEN)
+            lock_f.pack(fill="x", pady=(0, 10))
+            tk.Label(lock_f,
+                     text=f"✓  Submitted: {row['final_file_name']}",
+                     bg="#f0fdf4", fg=GREEN,
+                     font=("Segoe UI", 11, "bold"),
+                     padx=12, pady=8).pack(anchor="w")
+            tk.Label(lock_f,
+                     text="Submission is closed. Awaiting supervisor grade.",
+                     bg="#f0fdf4", fg=MUTED,
+                     font=("Segoe UI", 9),
+                     padx=12, pady=(0, 8)).pack(anchor="w")
+
+            # Show grade if available
+            if graded:
                 grade = row.get("grade") or ""
                 gf = tk.Frame(final_card, bg=BG_WHITE)
-                gf.pack(anchor="w", pady=(0, 10))
+                gf.pack(anchor="w", pady=(6, 0))
                 tk.Label(gf, text=f"  Score: {row['final_score']}/100  ",
                          bg=BLUE, fg=WHITE,
-                         font=("Segoe UI", 12, "bold"),
-                         padx=10, pady=4).pack(side="left", padx=(0, 8))
+                         font=("Segoe UI", 13, "bold"),
+                         padx=12, pady=6).pack(side="left", padx=(0, 8))
                 if grade:
                     gc = GREEN if grade in ("A","A+","A-","Excellent") else (
                          DANGER if grade in ("F","Fail") else GOLD_TILE)
                     tk.Label(gf, text=f"  Grade: {grade}  ",
                              bg=gc, fg=WHITE,
-                             font=("Segoe UI", 12, "bold"),
-                             padx=10, pady=4).pack(side="left")
+                             font=("Segoe UI", 13, "bold"),
+                             padx=12, pady=6).pack(side="left")
                 if row.get("supervisor_comment"):
                     tk.Label(final_card,
                              text=f"Supervisor feedback: {row['supervisor_comment']}",
                              bg="#eaf4fb", fg=DARK,
                              font=("Segoe UI", 10),
-                             wraplength=540, padx=10, pady=6).pack(fill="x", pady=(0, 8))
-
-            # Upload button
-            upload_btn = tk.Button(final_card, text="📁 Upload Final Thesis (PDF/DOCX)",
-                                   command=lambda m=mid, s=sup_id: self._upload_final(m, s),
-                                   bg=BLUE, fg=WHITE, relief="flat",
-                                   font=("Segoe UI", 10, "bold"),
-                                   padx=14, pady=7)
-            upload_btn.pack(anchor="w")
+                             wraplength=540, padx=12, pady=8).pack(fill="x", pady=(8, 0))
+            else:
+                tk.Label(final_card,
+                         text="⏳  Waiting for supervisor to grade your submission...",
+                         bg=BG_WHITE, fg=MUTED,
+                         font=("Segoe UI", 10)).pack(anchor="w", pady=(6, 0))
 
     def _update_phase(self, mid, sid, idx, new_status, phase_list):
         phase_list[idx] = new_status
@@ -309,24 +354,52 @@ class StudentMilestones(tk.Frame):
         page_header(self, "Thesis Progress", "Track your thesis phases and submit your final work")
         self._build()
 
-    def _upload_final(self, mid, sup_id):
+    def _choose_file(self):
+        """Let student pick a file — enables the Submit button."""
         path = filedialog.askopenfilename(
             filetypes=[("Documents", "*.pdf *.docx"), ("All files", "*.*")])
         if not path:
+            return
+        self._chosen_path.set(path)
+        self._chosen_label.config(
+            text=f"Selected: {os.path.basename(path)}", fg=BLUE)
+        self._submit_btn.config(state="normal")
+
+    def _submit_final(self, mid, sup_id):
+        """Copy file, lock submission, notify supervisor."""
+        path = self._chosen_path.get()
+        if not path or not os.path.exists(path):
+            messagebox.showerror("No File", "Please choose a file first.")
+            return
+        if not messagebox.askyesno(
+                "Confirm Submission",
+                "Once submitted you CANNOT upload again.\n\nSubmit your final thesis now?"):
             return
         ext  = path.rsplit(".", 1)[-1].lower()
         safe = f"final_{SESSION['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
         shutil.copy2(path, os.path.join(UPLOAD_FOLDER, safe))
         fname = os.path.basename(path)
-        query("UPDATE milestones SET final_file_path=%s, final_file_name=%s WHERE milestone_id=%s",
+        query("""UPDATE milestones
+                 SET final_file_path=%s, final_file_name=%s, status='Completed'
+                 WHERE milestone_id=%s""",
               (safe, fname, mid))
+        query("""UPDATE deadline_assignments da
+                 JOIN deadlines d ON da.deadline_id=d.deadline_id
+                 JOIN students st ON da.student_id=st.student_id
+                 SET da.submitted_at=NOW()
+                 WHERE st.supervisor_id=%s AND da.student_id=%s""",
+              (sup_id, SESSION["user_id"]))
         notify("supervisor", sup_id, "submission",
                "Final Thesis Submitted",
-               f"{SESSION['name']} uploaded their final thesis: {fname}")
-        messagebox.showinfo("Uploaded", f"Final thesis '{fname}' uploaded successfully!")
+               f"{SESSION['name']} submitted their final thesis: {fname}")
+        messagebox.showinfo("Submitted",
+                            f"'{fname}' submitted successfully!\n\n"
+                            "Your submission is now closed. "
+                            "Awaiting supervisor grade.")
         for w in self.winfo_children():
             w.destroy()
-        page_header(self, "Thesis Progress", "Track your thesis phases and submit your final work")
+        page_header(self, "Thesis Progress",
+                    "Track your thesis phases and submit your final work")
         self._build()
 
 
