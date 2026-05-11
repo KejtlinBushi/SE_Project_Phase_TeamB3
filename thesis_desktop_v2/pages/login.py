@@ -7,7 +7,20 @@ CEN 302 Software Engineering | Group III | Epoka University
 import tkinter as tk
 import math
 import random
+import os
 from database import query
+
+try:
+    from PIL import Image, ImageTk
+    _PIL_OK = True
+except ImportError:
+    _PIL_OK = False
+
+try:
+    from PIL import Image, ImageTk
+    _PIL_OK = True
+except ImportError:
+    _PIL_OK = False
 from auth import login_user, hash_password, check_password
 from ui import (TOP_BG, BLUE, BLUE2, BG_MAIN, WHITE, MUTED,
                 DARK, BORDER, DANGER, style_entry)
@@ -17,7 +30,6 @@ from ui import (TOP_BG, BLUE, BLUE2, BG_MAIN, WHITE, MUTED,
 class AnimatedBackground(tk.Canvas):
     """Canvas that draws slowly drifting school-themed items."""
 
-    # Each item: (draw_function_name, weight)
     ITEM_TYPES = [
         "pencil", "pencil", "pencil",
         "book",   "book",
@@ -54,7 +66,6 @@ class AnimatedBackground(tk.Canvas):
         drift = random.uniform(-0.15, 0.15)
         angle = random.uniform(0, 360)
         rot_s = random.uniform(-0.4, 0.4)
-        # soft color tones that blend with navy background
         palettes = {
             "pencil":         ("#f5cba7", "#d4ac0d", "#e8d5b7"),
             "book":           ("#85c1e9", "#5dade2", "#aed6f1"),
@@ -66,7 +77,6 @@ class AnimatedBackground(tk.Canvas):
             "paper":          ("#fdfefe", "#d5dbdb", "#eaecee"),
         }
         colors = palettes.get(kind, ("#aaaaaa", "#888888", "#cccccc"))
-        # lower alpha → soft overlay
         alpha = random.uniform(0.12, 0.30)
         c1 = self._mix(colors[0], "#1a5276", 1 - alpha)
         c2 = self._mix(colors[1], "#1a5276", 1 - alpha)
@@ -106,7 +116,6 @@ class AnimatedBackground(tk.Canvas):
             self._draw(s)
         self.after(30, self._animate)
 
-    # ── helpers ──────────────────────────────────────────────
     def _rot(self, pts, cx, cy, deg):
         r = math.radians(deg)
         out = []
@@ -124,7 +133,6 @@ class AnimatedBackground(tk.Canvas):
     def _rect_pts(self, x, y, w, h):
         return [(x,y),(x+w,y),(x+w,y+h),(x,y+h)]
 
-    # ── drawers ──────────────────────────────────────────────
     def _draw(self, s):
         getattr(self, f"_draw_{s['kind']}")(s)
 
@@ -132,18 +140,15 @@ class AnimatedBackground(tk.Canvas):
         x, y, sc, a = s["x"], s["y"], s["scale"], s["angle"]
         c1, c2, c3  = s["c1"], s["c2"], s["c3"]
         W, H = 8*sc, 46*sc
-        # body
         body = self._rect_pts(-W/2, -H/2, W, H*0.75)
         pts  = self._rot(body, 0, 0, a)
         pts  = [(p[0]+x, p[1]+y) for p in pts]
         self._poly(pts, c1)
-        # tip triangle
         tip_y = -H/2 + H*0.75
         tip = [(-W/2, tip_y),(W/2, tip_y),(0, -H/2+H)]
         pts2 = self._rot(tip, 0, 0, a)
         pts2 = [(p[0]+x, p[1]+y) for p in pts2]
         self._poly(pts2, c3)
-        # eraser top
         eraser = self._rect_pts(-W/2, H/2-H*0.12, W, H*0.12)
         pts3   = self._rot(eraser, 0, 0, a)
         pts3   = [(p[0]+x, p[1]+y) for p in pts3]
@@ -153,17 +158,14 @@ class AnimatedBackground(tk.Canvas):
         x, y, sc, a = s["x"], s["y"], s["scale"], s["angle"]
         c1, c2, c3  = s["c1"], s["c2"], s["c3"]
         W, H = 5*sc, 48*sc
-        # barrel
         body = self._rect_pts(-W/2, -H/2, W, H*0.8)
         pts  = self._rot(body, 0, 0, a)
         pts  = [(p[0]+x, p[1]+y) for p in pts]
         self._poly(pts, c1)
-        # nib
         nib = [(-W/2, -H/2+H*0.8),(W/2,-H/2+H*0.8),(0,-H/2+H)]
         pts2 = self._rot(nib, 0, 0, a)
         pts2 = [(p[0]+x, p[1]+y) for p in pts2]
         self._poly(pts2, c2)
-        # clip
         clip = self._rect_pts(W/2-W*0.15, -H/2, W*0.15, H*0.6)
         pts3 = self._rot(clip, 0, 0, a)
         pts3 = [(p[0]+x, p[1]+y) for p in pts3]
@@ -173,17 +175,14 @@ class AnimatedBackground(tk.Canvas):
         x, y, sc, a = s["x"], s["y"], s["scale"], s["angle"]
         c1, c2, c3  = s["c1"], s["c2"], s["c3"]
         W, H = 32*sc, 40*sc
-        # cover
         cover = self._rect_pts(-W/2, -H/2, W, H)
         pts   = self._rot(cover, 0, 0, a)
         pts   = [(p[0]+x, p[1]+y) for p in pts]
         self._poly(pts, c1)
-        # spine
         spine = self._rect_pts(-W/2, -H/2, W*0.12, H)
         pts2  = self._rot(spine, 0, 0, a)
         pts2  = [(p[0]+x, p[1]+y) for p in pts2]
         self._poly(pts2, c2)
-        # pages lines
         for i in range(1, 4):
             lx = -W/2 + W*0.2 + (W*0.65/4)*i
             line = self._rect_pts(lx, -H/2+H*0.15, W*0.04, H*0.7)
@@ -199,7 +198,6 @@ class AnimatedBackground(tk.Canvas):
         pts  = self._rot(body, 0, 0, a)
         pts  = [(p[0]+x, p[1]+y) for p in pts]
         self._poly(pts, c1)
-        # tick marks
         for i in range(11):
             tx = -W/2 + (W/10)*i
             th = H*0.5 if i % 5 == 0 else H*0.3
@@ -222,18 +220,15 @@ class AnimatedBackground(tk.Canvas):
     def _draw_graduation_cap(self, s):
         x, y, sc, a = s["x"], s["y"], s["scale"], s["angle"]
         c1, c2, _   = s["c1"], s["c2"], s["c3"]
-        # board (diamond)
         size = 22*sc
         diamond = [(0,-size),(size*0.7,0),(0,size*0.5),(-size*0.7,0)]
         pts = self._rot(diamond, 0, 0, a)
         pts = [(p[0]+x, p[1]+y) for p in pts]
         self._poly(pts, c1)
-        # top knob
         knob_r = 4*sc
         self.create_oval(x-knob_r, y-size-knob_r,
                          x+knob_r, y-size+knob_r,
                          fill=c2, outline="", tags="item")
-        # tassel line
         tassel_pts = self._rot([(size*0.6, 0),(size*0.6+4*sc, 14*sc)], 0, 0, a)
         tassel_pts = [(p[0]+x, p[1]+y) for p in tassel_pts]
         if len(tassel_pts) == 2:
@@ -245,11 +240,9 @@ class AnimatedBackground(tk.Canvas):
         x, y, sc, a = s["x"], s["y"], s["scale"], s["angle"]
         c1, c2, _   = s["c1"], s["c2"], s["c3"]
         r    = 14*sc
-        # lens circle
         self.create_oval(x-r, y-r, x+r, y+r,
                          fill="", outline=c1,
                          width=max(2, int(3*sc)), tags="item")
-        # handle
         ang = math.radians(a + 45)
         hx1 = x + r*math.cos(ang)
         hy1 = y + r*math.sin(ang)
@@ -263,17 +256,14 @@ class AnimatedBackground(tk.Canvas):
         x, y, sc, a = s["x"], s["y"], s["scale"], s["angle"]
         c1, c2, c3  = s["c1"], s["c2"], s["c3"]
         W, H = 28*sc, 36*sc
-        # sheet
         body = self._rect_pts(-W/2, -H/2, W, H)
         pts  = self._rot(body, 0, 0, a)
         pts  = [(p[0]+x, p[1]+y) for p in pts]
         self._poly(pts, c1)
-        # folded corner
         fold = [(-W/2+W*0.65,-H/2),(-W/2+W,-H/2),(-W/2+W*0.65,-H/2+H*0.22)]
         pts2 = self._rot(fold, 0, 0, a)
         pts2 = [(p[0]+x, p[1]+y) for p in pts2]
         self._poly(pts2, c3)
-        # lines on paper
         for i in range(1, 5):
             lx1 = -W/2 + W*0.15
             lx2 = -W/2 + W*0.75
@@ -320,6 +310,18 @@ class LoginPage(tk.Frame):
         # accent bar
         tk.Frame(card, bg=BLUE, height=4).pack(fill="x", pady=(0, 16))
 
+        # Logo
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "epoka_logo.png")
+        if _PIL_OK and os.path.exists(logo_path):
+            img = Image.open(logo_path).convert("RGBA")
+            img.thumbnail((130, 70), Image.LANCZOS)
+            self._logo_img = ImageTk.PhotoImage(img)
+            tk.Label(card, image=self._logo_img, bg=WHITE).pack(pady=(0, 12))
+        else:
+            tk.Label(card, text="EPOKA UNIVERSITY",
+                     bg=WHITE, fg=BLUE,
+                     font=("Segoe UI", 12, "bold")).pack(pady=(0, 12))
+
         # Header
         tk.Label(card, text="Welcome back",
                  bg=WHITE, fg=DARK,
@@ -328,21 +330,6 @@ class LoginPage(tk.Frame):
                  bg=WHITE, fg=MUTED,
                  font=("Segoe UI", 10)).pack(pady=(0, 22))
 
-        # role
-        tk.Label(card, text="Role", bg=WHITE, fg=MUTED,
-                 font=("Segoe UI", 9)).pack(anchor="w")
-        self.role_var = tk.StringVar(value="student")
-        role_f = tk.Frame(card, bg="#eaf0fb",
-                          highlightthickness=1, highlightbackground=BORDER)
-        role_f.pack(fill="x", pady=(4, 16))
-        for r in ("student", "supervisor", "admin"):
-            tk.Radiobutton(role_f, text=r.capitalize(),
-                           variable=self.role_var, value=r,
-                           bg="#eaf0fb", fg=DARK, selectcolor=WHITE,
-                           activebackground="#eaf0fb",
-                           font=("Segoe UI", 10)).pack(
-                side="left", padx=14, pady=8)
-
         # email
         tk.Label(card, text="Email", bg=WHITE, fg=MUTED,
                  font=("Segoe UI", 9)).pack(anchor="w")
@@ -350,7 +337,7 @@ class LoginPage(tk.Frame):
         e1 = tk.Entry(card, textvariable=self.email_var, width=36)
         style_entry(e1)
         e1.pack(fill="x", ipady=7, pady=(4, 14))
-        
+
         # password
         tk.Label(card, text="Password", bg=WHITE, fg=MUTED,
                  font=("Segoe UI", 9)).pack(anchor="w")
@@ -373,7 +360,6 @@ class LoginPage(tk.Frame):
                                 font=("Segoe UI", 10))
         self.err_lbl.pack(pady=(10, 0))
 
-        # Footer note — no register button
         tk.Label(card,
                  text="Contact your administrator to create an account.",
                  bg=WHITE, fg=MUTED,
@@ -385,25 +371,39 @@ class LoginPage(tk.Frame):
         super().destroy()
 
     def _login(self):
-        role  = self.role_var.get()
         email = self.email_var.get().strip()
         pw    = self.pw_var.get()
+
         if not email or not pw:
             self.err_lbl.config(text="Please enter email and password")
             return
-        tables = {
-            "student":    ("students",       "student_id"),
-            "supervisor": ("supervisors",    "supervisor_id"),
-            "admin":      ("administrators", "admin_id"),
-        }
-        tbl, pk = tables[role]
+
+        # Auto-detect role by searching all three tables
+        tables = [
+            ("students",       "student_id",    "student"),
+            ("supervisors",    "supervisor_id", "supervisor"),
+            ("administrators", "admin_id",       "admin"),
+        ]
+
+        row  = None
+        role = None
+        pk   = None
+
         try:
-            row = query(f"SELECT * FROM {tbl} WHERE email=%s", (email,), one=True)
+            for tbl, pk_col, r in tables:
+                result = query(f"SELECT * FROM {tbl} WHERE email=%s", (email,), one=True)
+                if result:
+                    row  = result
+                    role = r
+                    pk   = pk_col
+                    break
         except Exception as ex:
             self.err_lbl.config(text=f"DB error: {ex}")
             return
+
         if not row or not check_password(pw, row["password_hash"]):
             self.err_lbl.config(text="Invalid email or password")
             return
+
         login_user(row[pk], role, row["full_name"])
         self.master.show_main()
