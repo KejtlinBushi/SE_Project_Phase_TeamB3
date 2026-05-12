@@ -1024,9 +1024,17 @@ class StudentProfile(tk.Frame):
                        FROM students s
                        LEFT JOIN supervisors sup ON s.supervisor_id=sup.supervisor_id
                        WHERE s.student_id=%s""", (sid,), one=True)
-        pf = card_frame(self, padx=20, pady=18)
-        pf.pack(fill="x", padx=20, pady=12)
+
+        # ── Wrap everything in a ScrollFrame so nothing gets clipped ──
+        sf = ScrollFrame(self, bg=BG_MAIN)
+        sf.pack(fill="both", expand=True, padx=20, pady=12)
+
+        pf = card_frame(sf.inner, padx=20, pady=18)
+        pf.pack(fill="x")
+
         self.pvars = {}
+
+        # ── Profile fields ────────────────────────────────────────────
         for lbl_t, key, ro in [
             ("Full Name",    "full_name",       False),
             ("Email",        "email",           True),
@@ -1041,10 +1049,18 @@ class StudentProfile(tk.Frame):
             style_entry(e)
             e.pack(fill="x", ipady=6, pady=(4, 12))
             self.pvars[key] = v
+
+        # ── Divider ───────────────────────────────────────────────────
         tk.Frame(pf, bg=BORDER, height=1).pack(fill="x", pady=8)
+
+        # ── Change Password section ───────────────────────────────────
         tk.Label(pf, text="Change Password", bg=BG_WHITE, fg=DARK,
                  font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
-        for lbl_t, key in [("Current Password", "old_pw"), ("New Password", "new_pw")]:
+
+        for lbl_t, key in [
+            ("Current Password", "old_pw"),
+            ("New Password",     "new_pw"),
+        ]:
             tk.Label(pf, text=lbl_t, bg=BG_WHITE, fg=MUTED,
                      font=("Segoe UI", 9)).pack(anchor="w")
             v = tk.StringVar()
@@ -1052,26 +1068,39 @@ class StudentProfile(tk.Frame):
             style_entry(e)
             e.pack(fill="x", ipady=6, pady=(4, 12))
             self.pvars[key] = v
+
+        # ── Save button ───────────────────────────────────────────────
         sb = tk.Button(pf, text="Save Changes", command=self._save)
         style_btn(sb, "#2e8b57", WHITE)
-        sb.pack(anchor="w")
+        sb.pack(anchor="w", pady=(4, 0))
 
     def _save(self):
         sid   = SESSION["user_id"]
         name  = self.pvars["full_name"].get().strip()
         title = self.pvars["thesis_title"].get().strip()
+
         if name:
             query("UPDATE students SET full_name=%s WHERE student_id=%s", (name, sid))
             SESSION["name"] = name
         if title:
             query("UPDATE students SET thesis_title=%s WHERE student_id=%s", (title, sid))
+
         new_pw = self.pvars["new_pw"].get()
         old_pw = self.pvars["old_pw"].get()
+
         if new_pw:
-            row = query("SELECT password_hash FROM students WHERE student_id=%s", (sid,), one=True)
+            if not old_pw:
+                messagebox.showerror("Error", "Please enter your current password.")
+                return
+            row = query("SELECT password_hash FROM students WHERE student_id=%s",
+                        (sid,), one=True)
             if not check_password(old_pw, row["password_hash"]):
                 messagebox.showerror("Error", "Current password is incorrect.")
                 return
+            if len(new_pw) < 6:
+                messagebox.showerror("Error", "New password must be at least 6 characters.")
+                return
             query("UPDATE students SET password_hash=%s WHERE student_id=%s",
                   (hash_password(new_pw), sid))
+
         messagebox.showinfo("Saved", "Profile updated successfully!")
