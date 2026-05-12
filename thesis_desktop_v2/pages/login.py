@@ -371,11 +371,33 @@ class LoginPage(tk.Frame):
         super().destroy()
 
     def _login(self):
-        email = self.email_var.get().strip()
-        pw    = self.pw_var.get()
+        # Read raw values first (before any stripping) to detect TC07 whitespace
+        email_raw = self.email_var.get()
+        pw_raw    = self.pw_var.get()
 
-        if not email or not pw:
-            self.err_lbl.config(text="Please enter email and password")
+        email = email_raw.strip()
+        pw    = pw_raw.strip()
+
+        # TC06 – Both fields empty
+        if not email_raw and not pw_raw:
+            self.err_lbl.config(text="⚠  Please enter your email and password.")
+            return
+
+        # TC04 – Email field empty (or whitespace-only)
+        if not email:
+            self.err_lbl.config(text="⚠  Email is required.")
+            return
+
+        # TC05 – Password field empty (or whitespace-only)
+        if not pw:
+            self.err_lbl.config(text="⚠  Password is required.")
+            return
+
+        # TC07 – Extra leading/trailing spaces detected
+        if email_raw != email or pw_raw != pw:
+            self.err_lbl.config(
+                text="⚠  Email or password contains extra spaces. Please remove them."
+            )
             return
 
         # Auto-detect role by searching all three tables
@@ -398,12 +420,20 @@ class LoginPage(tk.Frame):
                     pk   = pk_col
                     break
         except Exception as ex:
-            self.err_lbl.config(text=f"DB error: {ex}")
+            self.err_lbl.config(text=f"⚠  Database error: {ex}")
             return
 
-        if not row or not check_password(pw, row["password_hash"]):
-            self.err_lbl.config(text="Invalid email or password")
+        # TC03 – Email not found in any table
+        if not row:
+            self.err_lbl.config(text="⚠  No account found with that email address.")
             return
 
+        # TC02 – Correct email but wrong password
+        if not check_password(pw, row["password_hash"]):
+            self.err_lbl.config(text="⚠  Incorrect password. Please try again.")
+            return
+
+        # TC01 – All checks passed → successful login
+        self.err_lbl.config(text="")
         login_user(row[pk], role, row["full_name"])
         self.master.show_main()

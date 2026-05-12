@@ -150,8 +150,9 @@ class AdminUsers(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
         page_header(self, "User Management", "Create, edit and delete users")
-        self.user_map   = {}   # iid → (uid, role, name, email)
-        self._btn_map   = {}   # iid → delete Button widget
+        self.user_map      = {}   # iid → (uid, role, name, email)
+        self._btn_map      = {}   # iid → delete Button widget
+        self._edit_btn_map = {}   # iid → edit Button widget
         self._build()
 
     # ── layout ───────────────────────────────────────────────
@@ -197,7 +198,7 @@ class AdminUsers(tk.Frame):
                  font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
         tk.Frame(uf, bg=BORDER, height=1).pack(fill="x")
 
-        # ── Split pane: treeview left, delete buttons right ───
+        # ── Split pane: treeview left, action buttons right ───
         pane = tk.Frame(uf, bg=BG_WHITE)
         pane.pack(fill="both", expand=True, padx=8, pady=(8, 0))
 
@@ -213,28 +214,27 @@ class AdminUsers(tk.Frame):
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        # Delete-buttons column (right of treeview)
+        # ── Delete column (rightmost) ─────────────────────────
         self._del_col = tk.Frame(pane, bg=BG_WHITE, width=44)
         self._del_col.pack(side="right", fill="y")
         self._del_col.pack_propagate(False)
-
-        # Header label to align with treeview heading
         tk.Label(self._del_col, text="Del", bg="#eaf0fb", fg=DARK,
                  font=("Segoe UI", 9, "bold"),
                  width=4, height=1,
                  relief="flat").pack(fill="x")
 
-        # Bottom action bar
-        bf = tk.Frame(uf, bg=BG_WHITE, pady=8)
-        bf.pack(fill="x", padx=8, pady=(0, 8))
-        tk.Button(bf, text="✎ Edit Selected",
-                  command=self._edit_user,
-                  bg=GOLD_TILE, fg=WHITE, relief="flat",
-                  font=("Segoe UI", 10, "bold"),
-                  padx=10, pady=4).pack(side="left", padx=(0, 6))
+        # ── Edit column (left of delete) ──────────────────────
+        self._edit_col = tk.Frame(pane, bg=BG_WHITE, width=44)
+        self._edit_col.pack(side="right", fill="y")
+        self._edit_col.pack_propagate(False)
+        tk.Label(self._edit_col, text="Edit", bg="#eaf0fb", fg=DARK,
+                 font=("Segoe UI", 9, "bold"),
+                 width=4, height=1,
+                 relief="flat").pack(fill="x")
 
-        # Bind selection so delete buttons highlight row
+        # Bind selection
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
+        self.tree.bind("<MouseWheel>", self._sync_scroll)
 
         self._load()
 
@@ -250,6 +250,11 @@ class AdminUsers(tk.Frame):
             btn.destroy()
         self._btn_map.clear()
 
+        # Clear old edit buttons
+        for btn in self._edit_btn_map.values():
+            btn.destroy()
+        self._edit_btn_map.clear()
+
         students = query("SELECT student_id AS id, full_name, email, 'student' AS role, created_at FROM students") or []
         sups     = query("SELECT supervisor_id AS id, full_name, email, 'supervisor' AS role, created_at FROM supervisors") or []
         admins   = query("SELECT admin_id AS id, full_name, email, 'admin' AS role, created_at FROM administrators") or []
@@ -263,9 +268,10 @@ class AdminUsers(tk.Frame):
                 r["role"], str(r["created_at"])[:16]))
             self.user_map[iid] = (r["id"], r["role"], r["full_name"], r["email"])
 
-            # Red trash button per row
             is_admin = r["role"] == "admin"
-            btn = tk.Button(
+
+            # ── Delete button ─────────────────────────────────
+            del_btn = tk.Button(
                 self._del_col,
                 text="🗑",
                 font=("Segoe UI", 13),
@@ -280,20 +286,41 @@ class AdminUsers(tk.Frame):
                 state="normal" if not is_admin else "disabled",
                 command=(lambda i=iid: self._delete_row(i)) if not is_admin else None
             )
-            btn.pack(fill="x")
+            del_btn.pack(fill="x")
 
-            # Hover effect for non-admin
             if not is_admin:
-                btn.bind("<Enter>", lambda e, b=btn: b.config(bg="#ffd6d6"))
-                btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#fff0f0"))
+                del_btn.bind("<Enter>", lambda e, b=del_btn: b.config(bg="#ffd6d6"))
+                del_btn.bind("<Leave>", lambda e, b=del_btn: b.config(bg="#fff0f0"))
 
-            self._btn_map[iid] = btn
+            self._btn_map[iid] = del_btn
 
-        # Sync scroll between treeview and button column
-        self.tree.bind("<MouseWheel>", self._sync_scroll)
+            # ── Edit button ───────────────────────────────────
+            edit_btn = tk.Button(
+                self._edit_col,
+                text="✎",
+                font=("Segoe UI", 13),
+                bg="#f0f4ff" if not is_admin else "#f5f5f5",
+                fg="#1a5276"  if not is_admin else "#aaaaaa",
+                activebackground="#d6e4ff",
+                activeforeground="#154360",
+                relief="flat",
+                cursor="hand2" if not is_admin else "arrow",
+                width=3,
+                pady=3,
+                state="normal" if not is_admin else "disabled",
+                command=(lambda i=iid: self._edit_row(i)) if not is_admin else None
+            )
+            edit_btn.pack(fill="x")
+
+            if not is_admin:
+                edit_btn.bind("<Enter>", lambda e, b=edit_btn: b.config(bg="#d6e4ff"))
+                edit_btn.bind("<Leave>", lambda e, b=edit_btn: b.config(bg="#f0f4ff"))
+
+            self._edit_btn_map[iid] = edit_btn
 
     # ── keep buttons aligned when tree scrolls ───────────────
     def _sync_scroll(self, event):
+        # Re-pack delete buttons
         for btn in self._btn_map.values():
             btn.pack_forget()
         for child in self._del_col.winfo_children():
@@ -304,10 +331,33 @@ class AdminUsers(tk.Frame):
             if iid in self._btn_map:
                 self._btn_map[iid].pack(fill="x")
 
+        # Re-pack edit buttons
+        for btn in self._edit_btn_map.values():
+            btn.pack_forget()
+        for child in self._edit_col.winfo_children():
+            if isinstance(child, tk.Label):
+                child.pack(fill="x")
+                break
+        for iid in self.tree.get_children():
+            if iid in self._edit_btn_map:
+                self._edit_btn_map[iid].pack(fill="x")
+
     def _on_select(self, event):
         pass
 
     # ── actions ──────────────────────────────────────────────
+    def _edit_row(self, iid):
+        info = self.user_map.get(iid)
+        if not info:
+            return
+        uid, role, old_name, old_email = info
+        if role == "admin":
+            messagebox.showinfo("Info", "Use the Profile page to edit admin accounts.")
+            return
+        dlg = EditUserDialog(self.master, uid, role, old_name, old_email)
+        self.wait_window(dlg)
+        self._load()
+
     def _delete_row(self, iid):
         info = self.user_map.get(iid)
         if not info:
@@ -560,9 +610,7 @@ class AdminAssignments(tk.Frame):
 
 
 # ═══════════════════════════════════════════════════════════
-# ═══════════════════════════════════════════════════════════
 class AdminActivityLog(tk.Frame):
-
 
     _PAIR_COLORS = [
         "#c0392b", "#e67e22", "#f39c12", "#27ae60", "#16a085",
@@ -684,37 +732,28 @@ class AdminActivityLog(tk.Frame):
         rh = self._ROW_H
         hh = self._HDR_H
 
-        # ── header: top-left corner ───────────────────────────
         c.create_rectangle(0, 0, dw, hh, fill="#1b3a6b", outline="#0d2247")
         c.create_text(dw//2, hh//2, text="Day  /  Time",
                       fill=WHITE, font=("Segoe UI", 9, "bold"))
 
-        # ── hour headers ──────────────────────────────────────
         for i, h in enumerate(self._HOURS):
             x0 = dw + i * sw
             x1 = x0 + sw
-            # alternating header shade
             hdr_bg = "#1b3a6b" if i % 2 == 0 else "#1e4080"
             c.create_rectangle(x0, 0, x1, hh, fill=hdr_bg, outline="#0d2247")
-            # range label e.g. "09:00 – 10:00"
             hr_int = 8 + i
             label_text = f"{hr_int:02d}:00 – {hr_int+1:02d}:00"
             c.create_text((x0+x1)//2, hh//2, text=label_text,
                           fill=WHITE, font=("Segoe UI", 8, "bold"))
 
-        # ── day rows ──────────────────────────────────────────
         for j, day in enumerate(self._DAYS):
             y0 = hh + j * rh
             y1 = y0 + rh
-            day_bg = "#f0f4fa" if j % 2 == 0 else "#e8eef8"
-
-            # day label cell
             c.create_rectangle(0, y0, dw, y1,
                                fill="#1b3a6b", outline="#0d2247")
             c.create_text(dw//2, (y0+y1)//2, text=day,
                           fill=WHITE, font=("Segoe UI", 10, "bold"))
 
-            # hour slot cells
             for i in range(len(self._HOURS)):
                 x0 = dw + i * sw
                 x1 = x0 + sw
@@ -735,28 +774,25 @@ class AdminActivityLog(tk.Frame):
 
         for m in meetings:
             try:
-                # ── parse date ───────────────────────────────
                 md = m["meeting_date"]
                 mt = m["meeting_time"]
                 if md is None or mt is None:
                     continue
 
-                # meeting_date may be a date object or string
                 if hasattr(md, "weekday"):
                     wd = md.weekday()
                 else:
                     md = _dt.date.fromisoformat(str(md))
                     wd = md.weekday()
 
-                # meeting_time may be timedelta (MySQL) or time or string
-                if hasattr(mt, "seconds"):          # timedelta
+                if hasattr(mt, "seconds"):
                     total = int(mt.total_seconds())
                     hr    = total // 3600
                     minute = (total % 3600) // 60
-                elif hasattr(mt, "hour"):            # time object
+                elif hasattr(mt, "hour"):
                     hr     = mt.hour
                     minute = mt.minute
-                else:                                # string "HH:MM:SS"
+                else:
                     parts  = str(mt).split(":")
                     hr     = int(parts[0])
                     minute = int(parts[1]) if len(parts) > 1 else 0
@@ -776,7 +812,6 @@ class AdminActivityLog(tk.Frame):
                 stack    = cell_counts.get(cell_key, 0)
                 cell_counts[cell_key] = stack + 1
 
-                # ── block geometry ────────────────────────────
                 max_stack   = 3
                 block_h     = max(18, (rh - 8) // max(1, stack + 1))
                 y0_blk      = y0_row + 4 + stack * block_h
@@ -786,7 +821,6 @@ class AdminActivityLog(tk.Frame):
 
                 r_tag = f"meet_{m['meeting_id']}"
 
-                # rounded rect with slight shadow
                 self._rounded_rect(c, x0_blk+2, y0_blk+2, x1_blk+2, y1_blk+2,
                                    radius=7,
                                    fill=self._darken(color, 0.6),
@@ -802,7 +836,6 @@ class AdminActivityLog(tk.Frame):
                 time_str    = f"{hr:02d}:{minute:02d}"
                 type_icon   = "💻" if m.get("meeting_type") == "online" else "🏫"
 
-                # status badge colour
                 status      = (m.get("status") or "").lower()
                 badge_color = {"confirmed": "#27ae60",
                                "scheduled": "#2980b9",
@@ -812,26 +845,22 @@ class AdminActivityLog(tk.Frame):
 
                 line_h = max(11, (y1_blk - y0_blk) // 4)
 
-                # Line 1 – supervisor (bold white)
                 c.create_text(cx, y0_blk + line_h,
                               text=sup_short,
                               fill=WHITE,
                               font=("Segoe UI", 8, "bold"),
                               width=sw - 12, tags=r_tag)
-                # Line 2 – student (light blue)
                 c.create_text(cx, y0_blk + line_h * 2,
                               text=f"🎓 {stu_short}",
                               fill="#d6eaf8",
                               font=("Segoe UI", 7),
                               width=sw - 12, tags=r_tag)
-                # Line 3 – time + type
                 c.create_text(cx, y0_blk + line_h * 3,
                               text=f"{type_icon} {time_str}",
                               fill="#aed6f1",
                               font=("Segoe UI", 7, "italic"),
                               width=sw - 12, tags=r_tag)
 
-                # Status dot (top-right corner of block)
                 dot_x = x1_blk - 8
                 dot_y = y0_blk + 8
                 c.create_oval(dot_x-5, dot_y-5, dot_x+5, dot_y+5,
@@ -923,7 +952,6 @@ class AdminActivityLog(tk.Frame):
                  bg=BG_WHITE, fg=DARK,
                  font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(0, 6))
 
-        # status legend
         status_f = tk.Frame(lf, bg=BG_WHITE)
         status_f.pack(anchor="w", pady=(0, 6))
         for label_t, color in [("Confirmed", "#27ae60"), ("Scheduled", "#2980b9"),
@@ -973,6 +1001,7 @@ class AdminActivityLog(tk.Frame):
             if col >= COLS:
                 col   = 0
                 row_n += 1
+
 
 # ═══════════════════════════════════════════════════════════
 class AdminNotifications(tk.Frame):
