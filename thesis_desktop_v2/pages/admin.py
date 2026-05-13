@@ -434,7 +434,7 @@ class EditUserDialog(tk.Toplevel):
         self.uid      = uid
         self.role     = role
         self.title(f"Edit {role.capitalize()}")
-        self.geometry("400x320")
+        self.geometry("400x420")
         self.configure(bg=BG_MAIN)
         self.resizable(False, False)
         self.grab_set()
@@ -443,6 +443,7 @@ class EditUserDialog(tk.Toplevel):
     def _build(self, old_name, old_email):
         f = tk.Frame(self, bg=BG_MAIN, padx=24, pady=20)
         f.pack(fill="both", expand=True)
+
         tk.Label(f, text=f"Edit {self.role.capitalize()}",
                  bg=BG_MAIN, fg=DARK,
                  font=("Segoe UI", 14, "bold")).pack(anchor="w", pady=(0, 16))
@@ -465,37 +466,46 @@ class EditUserDialog(tk.Toplevel):
         self.err = tk.Label(f, text="", bg=BG_MAIN, fg=DANGER,
                             font=("Segoe UI", 9))
         self.err.pack()
+
         bf = tk.Frame(f, bg=BG_MAIN)
-        bf.pack(fill="x", pady=(8, 0))
-        tk.Button(bf, text="Save", command=self._save,
-                  bg=BLUE, fg=WHITE, relief="flat",
+        bf.pack(fill="x", pady=(16, 8))
+
+        tk.Button(bf, text="💾 Save Changes",
+                  command=self._save,
+                  bg="#2e8b57", fg=WHITE, relief="flat",
                   font=("Segoe UI", 10, "bold"),
-                  padx=12, pady=5).pack(side="left", padx=(0, 8))
-        tk.Button(bf, text="Cancel", command=self.destroy,
+                  padx=14, pady=6).pack(side="left", padx=(0, 8))
+
+        tk.Button(bf, text="Cancel",
+                  command=self.destroy,
                   bg="#95a5a6", fg=WHITE, relief="flat",
                   font=("Segoe UI", 10),
-                  padx=12, pady=5).pack(side="left")
+                  padx=14, pady=6).pack(side="left")
 
     def _save(self):
         name  = self.name_var.get().strip()
         email = self.email_var.get().strip()
         pw    = self.pw_var.get()
+
         if not name or not email:
             self.err.config(text="Name and email are required.")
             return
+
         tbl = "students" if self.role == "student" else "supervisors"
         pk  = "student_id" if self.role == "student" else "supervisor_id"
+
         query(f"UPDATE {tbl} SET full_name=%s, email=%s WHERE {pk}=%s",
               (name, email, self.uid))
+
         if pw:
             if len(pw) < 8:
                 self.err.config(text="Password must be at least 8 characters.")
                 return
             query(f"UPDATE {tbl} SET password_hash=%s WHERE {pk}=%s",
                   (hash_password(pw), self.uid))
+
         messagebox.showinfo("Saved", "User updated successfully.")
         self.destroy()
-
 
 # ═══════════════════════════════════════════════════════════
 class AdminAssignments(tk.Frame):
