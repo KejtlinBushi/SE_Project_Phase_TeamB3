@@ -744,9 +744,6 @@
 #         messagebox.showinfo("Saved", f"Grade saved: {score}/100 — {grade}")
 #         self.destroy()
 
-# ============================================================
-# STUDENT VIEW
-# ============================================================
 
 
 """
@@ -802,6 +799,8 @@ def _ensure_columns():
         query("ALTER TABLE milestones ADD COLUMN IF NOT EXISTS final_file_path VARCHAR(500) DEFAULT NULL")
         query("ALTER TABLE milestones ADD COLUMN IF NOT EXISTS final_file_name VARCHAR(255) DEFAULT NULL")
         query("ALTER TABLE milestones ADD COLUMN IF NOT EXISTS final_score INT DEFAULT NULL")
+        # deadline_assignments.submitted_at — used by deadlines page to show submission status
+        query("ALTER TABLE deadline_assignments ADD COLUMN IF NOT EXISTS submitted_at DATETIME DEFAULT NULL")
     except Exception:
         pass
 
@@ -1145,12 +1144,15 @@ class StudentMilestones(tk.Frame):
         query("""UPDATE milestones
                  SET final_file_path=%s, final_file_name=%s, status='Completed'
                  WHERE milestone_id=%s""", (safe, fname, mid))
-        query("""UPDATE deadline_assignments da
-                 JOIN deadlines d ON da.deadline_id=d.deadline_id
-                 JOIN students st ON da.student_id=st.student_id
-                 SET da.submitted_at=NOW()
-                 WHERE st.supervisor_id=%s AND da.student_id=%s""",
-              (sup_id, SESSION["user_id"]))
+        # Mark submitted_at in deadline_assignments (so deadlines page shows submitted status)
+        try:
+            query("""UPDATE deadline_assignments da
+                     JOIN deadlines d ON da.deadline_id=d.deadline_id
+                     SET da.submitted_at=NOW()
+                     WHERE da.student_id=%s""",
+                  (SESSION["user_id"],))
+        except Exception:
+            pass  # Column may not exist on older installs; milestone record is the source of truth
         notify("supervisor", sup_id, "submission",
                "Final Thesis Submitted",
                f"{SESSION['name']} submitted their final thesis: {fname}")

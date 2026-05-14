@@ -315,8 +315,6 @@
 
 
 
-
-
 """
 pages/deadlines.py
 Final submission deadline only — student view with day-before reminder notification.
