@@ -1160,167 +1160,167 @@ class SupervisorMeetings(tk.Frame):
         for v in self._fvars.values():
             v.set("")
 # ═══════════════════════════════════════════════════════════
-class SupervisorMessages(tk.Frame):
-    def __init__(self, parent):
-        super().__init__(parent, bg=BG_MAIN)
-        page_header(self, "Messages", "Chat with your students")
-        self._build()
+# class SupervisorMessages(tk.Frame):
+#     def __init__(self, parent):
+#         super().__init__(parent, bg=BG_MAIN)
+#         page_header(self, "Messages", "Chat with your students")
+#         self._build()
 
-    # ── helper: create a coloured button with hover effect ──────────────
-    @staticmethod
-    def _make_btn(parent, text, command, bg, hover_bg, fg=WHITE):
-        b = tk.Button(parent, text=text, command=command,
-                      bg=bg, fg=fg, relief="flat",
-                      font=("Segoe UI", 10, "bold"),
-                      padx=14, pady=6, cursor="hand2",
-                      activebackground=hover_bg, activeforeground=fg,
-                      bd=0)
-        b.bind("<Enter>", lambda _: b.config(bg=hover_bg))
-        b.bind("<Leave>", lambda _: b.config(bg=bg))
-        return b
+#     # ── helper: create a coloured button with hover effect ──────────────
+#     @staticmethod
+#     def _make_btn(parent, text, command, bg, hover_bg, fg=WHITE):
+#         b = tk.Button(parent, text=text, command=command,
+#                       bg=bg, fg=fg, relief="flat",
+#                       font=("Segoe UI", 10, "bold"),
+#                       padx=14, pady=6, cursor="hand2",
+#                       activebackground=hover_bg, activeforeground=fg,
+#                       bd=0)
+#         b.bind("<Enter>", lambda _: b.config(bg=hover_bg))
+#         b.bind("<Leave>", lambda _: b.config(bg=bg))
+#         return b
 
-    def _build(self):
-        sid      = SESSION["user_id"]
-        students = query("SELECT student_id, full_name FROM students WHERE supervisor_id=%s",
-                         (sid,)) or []
-        if not students:
-            tk.Label(self, text="No students assigned yet.",
-                     bg=BG_MAIN, fg=MUTED, font=("Segoe UI", 12)).pack(pady=40)
-            return
+#     def _build(self):
+#         sid      = SESSION["user_id"]
+#         students = query("SELECT student_id, full_name FROM students WHERE supervisor_id=%s",
+#                          (sid,)) or []
+#         if not students:
+#             tk.Label(self, text="No students assigned yet.",
+#                      bg=BG_MAIN, fg=MUTED, font=("Segoe UI", 12)).pack(pady=40)
+#             return
 
-        # ── top bar ──────────────────────────────────────────────────────
-        top = tk.Frame(self, bg=BG_MAIN)
-        top.pack(fill="x", padx=20, pady=(8, 4))
-        tk.Label(top, text="Select student:", bg=BG_MAIN, fg=DARK,
-                 font=("Segoe UI", 10)).pack(side="left", padx=(0, 8))
+#         # ── top bar ──────────────────────────────────────────────────────
+#         top = tk.Frame(self, bg=BG_MAIN)
+#         top.pack(fill="x", padx=20, pady=(8, 4))
+#         tk.Label(top, text="Select student:", bg=BG_MAIN, fg=DARK,
+#                  font=("Segoe UI", 10)).pack(side="left", padx=(0, 8))
 
-        self._stu_map = {s["full_name"]: s["student_id"] for s in students}
-        self.stu_var  = tk.StringVar(value=students[0]["full_name"])
-        cb = ttk.Combobox(top, textvariable=self.stu_var,
-                          values=list(self._stu_map.keys()),
-                          state="readonly", width=30)
-        cb.pack(side="left")
+#         self._stu_map = {s["full_name"]: s["student_id"] for s in students}
+#         self.stu_var  = tk.StringVar(value=students[0]["full_name"])
+#         cb = ttk.Combobox(top, textvariable=self.stu_var,
+#                           values=list(self._stu_map.keys()),
+#                           state="readonly", width=30)
+#         cb.pack(side="left")
 
-        # Violet "Load Chat" button – eye-catching, different from blue sidebar
-        load_btn = self._make_btn(top, "💬  Load Chat", self._load_chat,
-                                  bg="#7C3AED", hover_bg="#6D28D9")
-        load_btn.pack(side="left", padx=8)
+#         # Violet "Load Chat" button – eye-catching, different from blue sidebar
+#         load_btn = self._make_btn(top, "💬  Load Chat", self._load_chat,
+#                                   bg="#7C3AED", hover_bg="#6D28D9")
+#         load_btn.pack(side="left", padx=8)
 
-        self.chat_area = tk.Frame(self, bg=BG_MAIN)
-        self.chat_area.pack(fill="both", expand=True, padx=20)
+#         self.chat_area = tk.Frame(self, bg=BG_MAIN)
+#         self.chat_area.pack(fill="both", expand=True, padx=20)
 
-        # Auto-load whenever selection changes + on first open
-        cb.bind("<<ComboboxSelected>>", lambda _: self._load_chat())
-        self._load_chat()
+#         # Auto-load whenever selection changes + on first open
+#         cb.bind("<<ComboboxSelected>>", lambda _: self._load_chat())
+#         self._load_chat()
 
-    def _load_chat(self):
-        for w in self.chat_area.winfo_children():
-            w.destroy()
-        sname  = self.stu_var.get()
-        st_id  = self._stu_map.get(sname)
-        sup_id = SESSION["user_id"]
-        if not st_id:
-            return
+#     def _load_chat(self):
+#         for w in self.chat_area.winfo_children():
+#             w.destroy()
+#         sname  = self.stu_var.get()
+#         st_id  = self._stu_map.get(sname)
+#         sup_id = SESSION["user_id"]
+#         if not st_id:
+#             return
 
-        mf = card_frame(self.chat_area, padx=0, pady=0)
-        mf.pack(fill="both", expand=True)
-        self.canvas = tk.Canvas(mf, bg=BG_WHITE, highlightthickness=0)
-        sb = ttk.Scrollbar(mf, orient="vertical", command=self.canvas.yview)
-        self.msg_frame = tk.Frame(self.canvas, bg=BG_WHITE)
-        self.msg_frame.bind("<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-        self.canvas.create_window((0, 0), window=self.msg_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=sb.set)
-        self.canvas.pack(side="left", fill="both", expand=True)
-        sb.pack(side="right", fill="y")
-        self._refresh_msgs(sup_id, st_id)
+#         mf = card_frame(self.chat_area, padx=0, pady=0)
+#         mf.pack(fill="both", expand=True)
+#         self.canvas = tk.Canvas(mf, bg=BG_WHITE, highlightthickness=0)
+#         sb = ttk.Scrollbar(mf, orient="vertical", command=self.canvas.yview)
+#         self.msg_frame = tk.Frame(self.canvas, bg=BG_WHITE)
+#         self.msg_frame.bind("<Configure>",
+#             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+#         self.canvas.create_window((0, 0), window=self.msg_frame, anchor="nw")
+#         self.canvas.configure(yscrollcommand=sb.set)
+#         self.canvas.pack(side="left", fill="both", expand=True)
+#         sb.pack(side="right", fill="y")
+#         self._refresh_msgs(sup_id, st_id)
 
-        # ── input bar ────────────────────────────────────────────────────
-        inp = tk.Frame(self.chat_area, bg="#F1F5F9", pady=8)
-        inp.pack(fill="x")
+#         # ── input bar ────────────────────────────────────────────────────
+#         inp = tk.Frame(self.chat_area, bg="#F1F5F9", pady=8)
+#         inp.pack(fill="x")
 
-        # 📎 Attach – sky blue
-        att = self._make_btn(inp, "📎", lambda: self._attach_send(sup_id, st_id),
-                             bg=_BTN_ATTACH, hover_bg="#0284C7")
-        att.pack(side="left", padx=(0, 6))
+#         # 📎 Attach – sky blue
+#         att = self._make_btn(inp, "📎", lambda: self._attach_send(sup_id, st_id),
+#                              bg=_BTN_ATTACH, hover_bg="#0284C7")
+#         att.pack(side="left", padx=(0, 6))
 
-        # Text entry
-        self.msg_var = tk.StringVar()
-        me = tk.Entry(inp, textvariable=self.msg_var,
-                      font=("Segoe UI", 10), relief="flat",
-                      bg=WHITE, fg=DARK,
-                      highlightthickness=1, highlightcolor="#2563EB",
-                      highlightbackground="#CBD5E1")
-        me.pack(side="left", fill="x", expand=True, ipady=8, padx=(0, 8))
-        me.bind("<Return>", lambda e: self._send(sup_id, st_id))
+#         # Text entry
+#         self.msg_var = tk.StringVar()
+#         me = tk.Entry(inp, textvariable=self.msg_var,
+#                       font=("Segoe UI", 10), relief="flat",
+#                       bg=WHITE, fg=DARK,
+#                       highlightthickness=1, highlightcolor="#2563EB",
+#                       highlightbackground="#CBD5E1")
+#         me.pack(side="left", fill="x", expand=True, ipady=8, padx=(0, 8))
+#         me.bind("<Return>", lambda e: self._send(sup_id, st_id))
 
-        # ➤ Send – vivid blue
-        send_btn = self._make_btn(inp, "➤  Send",
-                                  lambda: self._send(sup_id, st_id),
-                                  bg=_BTN_SEND, hover_bg=_BTN_SEND_HVR)
-        send_btn.pack(side="right")
+#         # ➤ Send – vivid blue
+#         send_btn = self._make_btn(inp, "➤  Send",
+#                                   lambda: self._send(sup_id, st_id),
+#                                   bg=_BTN_SEND, hover_bg=_BTN_SEND_HVR)
+#         send_btn.pack(side="right")
 
-    def _refresh_msgs(self, sup_id, st_id):
-        for w in self.msg_frame.winfo_children():
-            w.destroy()
-        rows = query("""SELECT * FROM messages
-                        WHERE (sender_role='supervisor' AND sender_id=%s AND receiver_id=%s)
-                           OR (sender_role='student'    AND sender_id=%s AND receiver_id=%s)
-                        ORDER BY sent_at ASC""",
-                     (sup_id, st_id, st_id, sup_id)) or []
-        for r in rows:
-            is_me = r["sender_role"] == "supervisor"
-            bg    = _BTN_SEND if is_me else "#E2E8F0"
-            fg    = WHITE     if is_me else DARK
-            side  = "right"   if is_me else "left"
-            bf = tk.Frame(self.msg_frame, bg=BG_WHITE)
-            bf.pack(fill="x", padx=10, pady=3, anchor="e" if is_me else "w")
-            tk.Label(bf, text=r["body"], bg=bg, fg=fg,
-                     font=("Segoe UI", 10), wraplength=360,
-                     padx=10, pady=6, justify="left").pack(side=side)
-            if r.get("attachment_path"):
-                full  = os.path.join(UPLOAD_FOLDER, r["attachment_path"])
-                aname = r.get("attachment_name", "Attachment")
-                tk.Button(bf, text=f"📄 {aname}",
-                          command=lambda p=full: open_file(p),
-                          bg="#DBEAFE", fg=_BTN_SEND, relief="flat",
-                          font=("Segoe UI", 9), cursor="hand2",
-                          padx=6, pady=3).pack(side=side, pady=2)
-            tk.Label(bf, text=str(r["sent_at"])[:16],
-                     bg=BG_WHITE, fg=MUTED, font=("Segoe UI", 8)).pack(side=side, padx=4)
-        self.after(100, lambda: self.canvas.yview_moveto(1.0))
+#     def _refresh_msgs(self, sup_id, st_id):
+#         for w in self.msg_frame.winfo_children():
+#             w.destroy()
+#         rows = query("""SELECT * FROM messages
+#                         WHERE (sender_role='supervisor' AND sender_id=%s AND receiver_id=%s)
+#                            OR (sender_role='student'    AND sender_id=%s AND receiver_id=%s)
+#                         ORDER BY sent_at ASC""",
+#                      (sup_id, st_id, st_id, sup_id)) or []
+#         for r in rows:
+#             is_me = r["sender_role"] == "supervisor"
+#             bg    = _BTN_SEND if is_me else "#E2E8F0"
+#             fg    = WHITE     if is_me else DARK
+#             side  = "right"   if is_me else "left"
+#             bf = tk.Frame(self.msg_frame, bg=BG_WHITE)
+#             bf.pack(fill="x", padx=10, pady=3, anchor="e" if is_me else "w")
+#             tk.Label(bf, text=r["body"], bg=bg, fg=fg,
+#                      font=("Segoe UI", 10), wraplength=360,
+#                      padx=10, pady=6, justify="left").pack(side=side)
+#             if r.get("attachment_path"):
+#                 full  = os.path.join(UPLOAD_FOLDER, r["attachment_path"])
+#                 aname = r.get("attachment_name", "Attachment")
+#                 tk.Button(bf, text=f"📄 {aname}",
+#                           command=lambda p=full: open_file(p),
+#                           bg="#DBEAFE", fg=_BTN_SEND, relief="flat",
+#                           font=("Segoe UI", 9), cursor="hand2",
+#                           padx=6, pady=3).pack(side=side, pady=2)
+#             tk.Label(bf, text=str(r["sent_at"])[:16],
+#                      bg=BG_WHITE, fg=MUTED, font=("Segoe UI", 8)).pack(side=side, padx=4)
+#         self.after(100, lambda: self.canvas.yview_moveto(1.0))
 
-    def _send(self, sup_id, st_id):
-        body = self.msg_var.get().strip()
-        if not body:
-            return
-        query("""INSERT INTO messages
-                 (sender_role, sender_id, receiver_role, receiver_id, body)
-                 VALUES ('supervisor',%s,'student',%s,%s)""",
-              (sup_id, st_id, body))
-        create_notification("student", st_id, "message",
-                            "New Message", f"{SESSION['name']}: {body[:60]}")
-        self.msg_var.set("")
-        self._refresh_msgs(sup_id, st_id)
+#     def _send(self, sup_id, st_id):
+#         body = self.msg_var.get().strip()
+#         if not body:
+#             return
+#         query("""INSERT INTO messages
+#                  (sender_role, sender_id, receiver_role, receiver_id, body)
+#                  VALUES ('supervisor',%s,'student',%s,%s)""",
+#               (sup_id, st_id, body))
+#         create_notification("student", st_id, "message",
+#                             "New Message", f"{SESSION['name']}: {body[:60]}")
+#         self.msg_var.set("")
+#         self._refresh_msgs(sup_id, st_id)
 
-    def _attach_send(self, sup_id, st_id):
-        path = filedialog.askopenfilename(
-            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")])
-        if not path:
-            return
-        ext  = path.rsplit(".", 1)[-1].lower()
-        safe = f"msg_{sup_id}_{uuid.uuid4().hex[:8]}.{ext}"
-        dest = os.path.join(UPLOAD_FOLDER, safe)
-        shutil.copy2(path, dest)
-        fname = os.path.basename(path)
-        query("""INSERT INTO messages
-                 (sender_role, sender_id, receiver_role, receiver_id,
-                  body, attachment_path, attachment_name)
-                 VALUES ('supervisor',%s,'student',%s,%s,%s,%s)""",
-              (sup_id, st_id, f"[Attachment: {fname}]", safe, fname))
-        create_notification("student", st_id, "message",
-                            "New Attachment", f"{SESSION['name']} sent a file: {fname}")
-        self._refresh_msgs(sup_id, st_id)
+#     def _attach_send(self, sup_id, st_id):
+#         path = filedialog.askopenfilename(
+#             filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")])
+#         if not path:
+#             return
+#         ext  = path.rsplit(".", 1)[-1].lower()
+#         safe = f"msg_{sup_id}_{uuid.uuid4().hex[:8]}.{ext}"
+#         dest = os.path.join(UPLOAD_FOLDER, safe)
+#         shutil.copy2(path, dest)
+#         fname = os.path.basename(path)
+#         query("""INSERT INTO messages
+#                  (sender_role, sender_id, receiver_role, receiver_id,
+#                   body, attachment_path, attachment_name)
+#                  VALUES ('supervisor',%s,'student',%s,%s,%s,%s)""",
+#               (sup_id, st_id, f"[Attachment: {fname}]", safe, fname))
+#         create_notification("student", st_id, "message",
+#                             "New Attachment", f"{SESSION['name']} sent a file: {fname}")
+#         self._refresh_msgs(sup_id, st_id)
 
 
 # ═══════════════════════════════════════════════════════════

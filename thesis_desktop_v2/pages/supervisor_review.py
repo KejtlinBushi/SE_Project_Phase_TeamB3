@@ -604,3 +604,5 @@ class SupervisorReviewWindow(tk.Toplevel):
             self.refresh_callback()
 
         self.destroy()
+
+
