@@ -7,6 +7,7 @@ CEN 302 Software Engineering | Group III | Epoka University
 import os, shutil, uuid
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from pages.messages import SupervisorMessages
 
 from .supervisor_review import SupervisorReviewWindow
 from database import query

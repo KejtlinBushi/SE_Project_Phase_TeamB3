@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from PIL import Image, ImageTk
 import fitz
+from pages.messages import StudentMessages
 
 from pages.student_submissions import StudentSubmissions
 from database import query
