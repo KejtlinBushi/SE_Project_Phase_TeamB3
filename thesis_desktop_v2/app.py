@@ -178,7 +178,7 @@ from pages.milestones import StudentMilestones as _StudentMilestones
 from pages.milestones import SupervisorMilestones as _SupervisorMilestones
 from pages.deadlines  import StudentDeadlines   as _StudentDeadlines
 from pages.deadlines  import SupervisorDeadlines as _SupervisorDeadlines
-
+from pages.student_help import StudentHelp
 from base_app import BaseApp
 
 
@@ -192,6 +192,7 @@ class StudentApp(BaseApp):
         ("meetings",       "📆", "Meetings"),
         ("notifications",  "🔔", "Notifications"),
         ("profile",        "👤", "My Profile"),
+        ("help",           "❓", "Need Help?"),
     ]
     PAGES = {
         "dashboard":     StudentDashboard,
@@ -202,6 +203,7 @@ class StudentApp(BaseApp):
         "meetings":      StudentMeetings,
         "notifications": StudentNotifications,
         "profile":       StudentProfile,
+        "help":          StudentHelp,
     }
 
 
