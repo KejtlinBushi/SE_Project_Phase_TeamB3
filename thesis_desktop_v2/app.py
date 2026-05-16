@@ -143,8 +143,7 @@
 #             f"Make sure XAMPP MySQL is running and\n"
 #             f"database 'thesis_tracker' exists.\n\nError: {e}")
 #         root.destroy()
-#         raise SystemExit(1)
-#     App().mainloop()
+#  
 
 
 
@@ -262,12 +261,18 @@ class App(tk.Tk):
         y = (self.winfo_screenheight() - 700)  // 2
         self.geometry(f"+{x}+{y}")
         self.current_frame = None
-        self.show_login()
+        self.show_home()
 
     def clear(self):
         if self.current_frame:
             self.current_frame.destroy()
             self.current_frame = None
+
+    def show_home(self):
+        self.clear()
+        from home_page import HomePage
+        self.current_frame = HomePage(self)
+        self.current_frame.pack(fill="both", expand=True)
 
     def show_login(self):
         self.clear()
@@ -303,4 +308,5 @@ if __name__ == "__main__":
             f"database 'thesis_tracker' exists.\n\nError: {e}")
         root.destroy()
         raise SystemExit(1)
+   
     App().mainloop()
