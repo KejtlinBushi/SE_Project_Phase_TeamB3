@@ -1,5 +1,4 @@
 
-
 import os
 import uuid
 import shutil
@@ -146,7 +145,6 @@ class ChatMessagesBase(tk.Frame):
             self._build_student_selector()
 
         self._build_chat_container()
-        self._build_input_bar()
 
         self._load_default_conversation()
 
@@ -180,13 +178,21 @@ class ChatMessagesBase(tk.Frame):
         )
         self.chat_card.pack(fill="both", expand=True)
 
+        # Use grid inside chat_card so the input bar keeps a fixed height.
+        self.chat_card.grid_rowconfigure(0, weight=0)  # header
+        self.chat_card.grid_rowconfigure(1, weight=0)  # tabs
+        self.chat_card.grid_rowconfigure(2, weight=1)  # messages
+        self.chat_card.grid_rowconfigure(3, weight=0)  # input
+        self.chat_card.grid_columnconfigure(0, weight=1)
+
         self._build_header()
         self._build_tabs()
         self._build_body()
+        self._build_input_bar()
 
     def _build_header(self):
         header = tk.Frame(self.chat_card, bg=BG_WHITE, height=72)
-        header.pack(fill="x")
+        header.grid(row=0, column=0, sticky="ew")
         header.pack_propagate(False)
 
         self.avatar_label = tk.Label(
@@ -237,7 +243,7 @@ class ChatMessagesBase(tk.Frame):
 
     def _build_tabs(self):
         tab_bar = tk.Frame(self.chat_card, bg=BG_WHITE)
-        tab_bar.pack(fill="x")
+        tab_bar.grid(row=1, column=0, sticky="ew")
 
         tk.Frame(tab_bar, bg="#e8edf3", height=1).pack(fill="x", side="bottom")
 
@@ -274,7 +280,7 @@ class ChatMessagesBase(tk.Frame):
 
     def _build_body(self):
         self.body = tk.Frame(self.chat_card, bg="#f7f9fc")
-        self.body.pack(fill="both", expand=True)
+        self.body.grid(row=2, column=0, sticky="nsew")
 
         self.canvas = tk.Canvas(
             self.body,
@@ -310,12 +316,14 @@ class ChatMessagesBase(tk.Frame):
 
     def _build_input_bar(self):
         self.input_outer = tk.Frame(
-            self.main,
+            self.chat_card,
             bg=BG_WHITE,
             highlightbackground="#dce3ea",
-            highlightthickness=1
+            highlightthickness=1,
+            height=76
         )
-        self.input_outer.pack(fill="x", pady=(10, 0))
+        self.input_outer.grid(row=3, column=0, sticky="ew")
+        self.input_outer.grid_propagate(False)
 
         # Reply preview is placed OVER the message area, not packed into the input bar.
         # This prevents the typing area from shrinking when replying.
@@ -378,7 +386,8 @@ class ChatMessagesBase(tk.Frame):
             height=58
         )
         self.input_row.pack(
-            fill="x",
+            fill="both",
+            expand=True,
             padx=10,
             pady=8
         )
@@ -538,12 +547,12 @@ class ChatMessagesBase(tk.Frame):
         if tab == "chat":
             self.chat_tab_btn.config(fg=BLUE, font=("Segoe UI", 10, "bold"))
             self.files_tab_btn.config(fg=MUTED, font=("Segoe UI", 10))
-            self.input_outer.pack(fill="x", pady=(10, 0), ipady=8)
+            self.input_outer.grid(row=3, column=0, sticky="ew")
         else:
             self.chat_tab_btn.config(fg=MUTED, font=("Segoe UI", 10))
             self.files_tab_btn.config(fg=BLUE, font=("Segoe UI", 10, "bold"))
             self._cancel_reply()
-            self.input_outer.pack_forget()
+            self.input_outer.grid_remove()
 
         self._load_content()
 
@@ -1248,11 +1257,11 @@ class ChatMessagesBase(tk.Frame):
             self.chat_tab_btn.config(fg=BLUE, font=("Segoe UI", 10, "bold"))
             self.files_tab_btn.config(fg=MUTED, font=("Segoe UI", 10))
             if not self.input_outer.winfo_ismapped():
-                self.input_outer.pack(fill="x", pady=(10, 0), ipady=8)
+                self.input_outer.grid(row=3, column=0, sticky="ew")
         else:
             self.chat_tab_btn.config(fg=MUTED, font=("Segoe UI", 10))
             self.files_tab_btn.config(fg=BLUE, font=("Segoe UI", 10, "bold"))
-            self.input_outer.pack_forget()
+            self.input_outer.grid_remove()
 
     def _is_deleted(self, row):
         value = row.get("is_deleted")
