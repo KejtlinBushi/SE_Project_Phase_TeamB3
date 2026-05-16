@@ -1,8 +1,3 @@
-"""
-pages/supervisor_review.py
-Supervisor review window with student-style PDF preview,
-feedback submission, approve, and reject buttons.
-"""
 
 import os
 import tkinter as tk
@@ -32,6 +27,7 @@ class SupervisorReviewWindow(tk.Toplevel):
 
         self.parent = parent
         self.submission = submission
+        self._ensure_description_loaded()
         self.refresh_callback = refresh_callback
         self.file_path = self._resolve_file_path()
         self.preview_images = []
@@ -43,6 +39,23 @@ class SupervisorReviewWindow(tk.Toplevel):
         self.configure(bg="#eef3f8")
 
         self._build()
+
+    def _ensure_description_loaded(self):
+        """Make sure the optional student description is available in this window."""
+        if self.submission.get("description") is not None:
+            return
+
+        try:
+            row = query(
+                "SELECT description FROM submissions WHERE submission_id=%s",
+                (self.submission["submission_id"],),
+                one=True
+            )
+
+            if row:
+                self.submission["description"] = row.get("description")
+        except Exception:
+            self.submission["description"] = ""
 
     def _resolve_file_path(self):
         stored_path = self.submission.get("file_path")
@@ -277,7 +290,7 @@ class SupervisorReviewWindow(tk.Toplevel):
                 self.doc_canvas.create_text(
                     300,
                     250,
-                    text="DOCX preview is not available.\nClick 'Open in Default App' to view the document.",
+                    text="Only PDF preview is supported.\nPlease ask the student to upload a PDF file.",
                     fill=WHITE,
                     font=("Segoe UI", 13),
                     justify="center"
@@ -358,13 +371,15 @@ class SupervisorReviewWindow(tk.Toplevel):
             font=("Segoe UI", 11, "bold")
         ).grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(12, 8))
 
+        description_text = (self.submission.get("description") or "No description provided.").strip()
+
         info_items = [
             ("Student", self.submission["full_name"]),
             ("Version", f"v{self.submission['version_number']}"),
             ("File Name", self.submission["file_name"]),
             ("Submitted", str(self.submission["submitted_at"])[:16]),
             ("Status", self.submission["status"]),
-            ("File Size", f"{self.submission['file_size_kb']} KB")
+            ("Description", description_text)
         ]
 
         for i, (label_text, value_text) in enumerate(info_items):
