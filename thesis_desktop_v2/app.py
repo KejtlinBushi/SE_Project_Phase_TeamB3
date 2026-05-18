@@ -168,7 +168,7 @@ from pages.supervisor import (SupervisorDashboard, SupervisorReviews,
                                SupervisorMeetings,  SupervisorMessages,
                                SupervisorNotifications, SupervisorProfile)
 from pages.admin import (AdminDashboard, AdminUsers, AdminAssignments,
-                         AdminActivityLog, AdminNotifications, AdminProfile)
+                         AdminMeetingSchedule, AdminActivityLog, AdminNotifications, AdminProfile)
 
 # ── Dedicated Milestones & Deadlines pages ─────────────────
 # These are the full-featured implementations (6-phase tracker,
@@ -234,6 +234,7 @@ class AdminApp(BaseApp):
         ("dashboard",     "🏠", "Home"),
         ("users",         "👥", "Users"),
         ("assignments",   "🔗", "Assignments"),
+        ("meetings",      "📆", "Meetings"),
         ("activity",      "📋", "Activity"),
         ("notifications", "🔔", "Notifications"),
         ("profile",       "👤", "My Profile"),
@@ -242,6 +243,7 @@ class AdminApp(BaseApp):
         "dashboard":     AdminDashboard,
         "users":         AdminUsers,
         "assignments":   AdminAssignments,
+        "meetings":      AdminMeetingSchedule,
         "activity":      AdminActivityLog,
         "notifications": AdminNotifications,
         "profile":       AdminProfile,
@@ -261,18 +263,12 @@ class App(tk.Tk):
         y = (self.winfo_screenheight() - 700)  // 2
         self.geometry(f"+{x}+{y}")
         self.current_frame = None
-        self.show_home()
+        self.show_login()
 
     def clear(self):
         if self.current_frame:
             self.current_frame.destroy()
             self.current_frame = None
-
-    def show_home(self):
-        self.clear()
-        from home_page import HomePage
-        self.current_frame = HomePage(self)
-        self.current_frame.pack(fill="both", expand=True)
 
     def show_login(self):
         self.clear()
