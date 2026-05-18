@@ -431,60 +431,63 @@ class StudentSubmissions(tk.Frame):
 
         open_file(file_path)
 
-    def _delete_selected_submission(self):
-        submission = self._get_selected_submission()
+    # def _delete_selected_submission(self):
+    #     submission = self._get_selected_submission()
 
-        if not submission:
-            return
+    #     if not submission:
+    #         return
 
-        if submission["status"] in ("Approved", "Rejected"):
-            messagebox.showwarning(
-                "Cannot Delete",
-                "This thesis version cannot be deleted because it has already been approved or rejected."
-            )
-            return
+    #     if submission["status"] in ("Approved", "Rejected"):
+    #         messagebox.showwarning(
+    #             "Cannot Delete",
+    #             "This thesis version cannot be deleted because it has already been approved or rejected."
+    #         )
+    #         return
 
-        confirm = messagebox.askyesno(
-            "Confirm Delete",
-            "Are you sure you want to delete this thesis version?"
-        )
+    #     confirm = messagebox.askyesno(
+    #         "Confirm Delete",
+    #         "Are you sure you want to delete this thesis version?"
+    #     )
 
-        if not confirm:
-            return
+    #     if not confirm:
+    #         return
 
-        try:
-            file_path = self._resolve_submission_file_path(submission)
+    #     try:
+    #         file_path = self._resolve_submission_file_path(submission)
 
-            if file_path and os.path.exists(file_path):
-                os.remove(file_path)
+    #         if file_path and os.path.exists(file_path):
+    #             os.remove(file_path)
 
-            query("""
-                DELETE FROM submissions
-                WHERE submission_id = %s
-                AND student_id = %s
-            """, (
-                submission["submission_id"],
-                SESSION["user_id"]
-            ))
+    #         query("""
+    #             DELETE FROM submissions
+    #             WHERE submission_id = %s
+    #             AND student_id = %s
+    #         """, (
+    #             submission["submission_id"],
+    #             SESSION["user_id"]
+    #         ))
 
-            messagebox.showinfo(
-                "Deleted",
-                "Submission deleted successfully."
-            )
+    #         messagebox.showinfo(
+    #             "Deleted",
+    #             "Submission deleted successfully."
+    #         )
 
-            self._load(SESSION["user_id"])
+    #         self._load(SESSION["user_id"])
 
-        except Exception as e:
-            messagebox.showerror(
-                "Delete Error",
-                f"Could not delete submission: {e}"
-            )
+    #     except Exception as e:
+    #         messagebox.showerror(
+    #             "Delete Error",
+    #             f"Could not delete submission: {e}"
+    #         )
+
+    #The function called for selected submission 
     def _open_selected_feedback(self, event=None):
         submission = self._get_selected_submission()
 
         if not submission:
             return
 
+#The pop up that shows details of submission    (rregullo feedback)
         win = tk.Toplevel(self)
         win.title(
             f"Thesis Submission Feedback - "
@@ -554,9 +557,9 @@ class StudentSubmissions(tk.Frame):
         ).pack(side="right", padx=(0, 10))
         
 
-        # =========================
+       
         # LEFT: DOCUMENT PREVIEW
-        # =========================
+        
         tk.Label(
             left,
             text="📘 THESIS DOCUMENT",
@@ -570,6 +573,7 @@ class StudentSubmissions(tk.Frame):
         doc_frame = tk.Frame(left, bg="#454545")
         doc_frame.pack(fill="both", expand=True, padx=18, pady=15)
 
+    #krijimi i canva x preview
         doc_canvas = tk.Canvas(
             doc_frame,
             bg="#454545",
@@ -583,7 +587,7 @@ class StudentSubmissions(tk.Frame):
             orient="vertical",
             command=doc_canvas.yview
         )
-
+     #lidhja ecanvas me scrollbar
         doc_canvas.configure(yscrollcommand=doc_scroll.set)
 
         doc_canvas.grid(row=0, column=0, sticky="nsew")
@@ -629,6 +633,7 @@ class StudentSubmissions(tk.Frame):
                     rect = page.rect
 
                     zoom = canvas_width / rect.width
+                    #konverton faqen ne imazh 
                     pix = page.get_pixmap(
                         matrix=fitz.Matrix(zoom, zoom),
                         alpha=False
@@ -716,9 +721,9 @@ class StudentSubmissions(tk.Frame):
             font=("Segoe UI", 10)
         ).pack(side="right")
 
-        # =========================
+       
         # RIGHT: FEEDBACK
-        # =========================
+      
         top_feedback = tk.Frame(right, bg=WHITE)
         top_feedback.pack(fill="x", padx=22, pady=(18, 10))
 
@@ -847,48 +852,48 @@ class StudentSubmissions(tk.Frame):
         feedback_box.pack(side="left", fill="both", expand=True)
         feedback_scroll.pack(side="right", fill="y")
 
-        # =========================
-        # STUDENT REPLY
-        # =========================
-        tk.Label(
-            right,
-            text="Reply to Supervisor",
-            bg=WHITE,
-            fg="#003B7A",
-            font=("Segoe UI", 12, "bold")
-        ).pack(anchor="w", padx=22, pady=(0, 8))
+        # # =========================
+        # # STUDENT REPLY
+        # # =========================
+        # tk.Label(
+        #     right,
+        #     text="Reply to Supervisor",
+        #     bg=WHITE,
+        #     fg="#003B7A",
+        #     font=("Segoe UI", 12, "bold")
+        # ).pack(anchor="w", padx=22, pady=(0, 8))
 
-        reply_frame = tk.Frame(
-            right,
-            bg=WHITE,
-            highlightbackground="#d5dde8",
-            highlightthickness=1
-        )
-        reply_frame.pack(fill="x", padx=22, pady=(0, 18))
+        # reply_frame = tk.Frame(
+        #     right,
+        #     bg=WHITE,
+        #     highlightbackground="#d5dde8",
+        #     highlightthickness=1
+        # )
+        # reply_frame.pack(fill="x", padx=22, pady=(0, 18))
 
-        reply_box = tk.Text(
-            reply_frame,
-            height=4,
-            wrap="word",
-            bg="#ffffff",
-            fg=DARK,
-            font=("Segoe UI", 10),
-            padx=10,
-            pady=8
-        )
-        reply_box.pack(fill="x", padx=8, pady=8)
+        # reply_box = tk.Text(
+        #     reply_frame,
+        #     height=4,
+        #     wrap="word",
+        #     bg="#ffffff",
+        #     fg=DARK,
+        #     font=("Segoe UI", 10),
+        #     padx=10,
+        #     pady=8
+        # )
+        # reply_box.pack(fill="x", padx=8, pady=8)
 
-        tk.Button(
-            reply_frame,
-            text="Send Reply",
-            command=lambda: self._send_feedback_reply(submission, reply_box),
-            bg=BLUE,
-            fg=WHITE,
-            relief="flat",
-            font=("Segoe UI", 10, "bold"),
-            padx=12,
-            pady=6
-        ).pack(anchor="e", padx=8, pady=(0, 8))
+        # tk.Button(
+        #     reply_frame,
+        #     text="Send Reply",
+        #     command=lambda: self._send_feedback_reply(submission, reply_box),
+        #     bg=BLUE,
+        #     fg=WHITE,
+        #     relief="flat",
+        #     font=("Segoe UI", 10, "bold"),
+        #     padx=12,
+        #     pady=6
+        # ).pack(anchor="e", padx=8, pady=(0, 8))
 
         # =========================
         # BOTTOM BUTTONS
