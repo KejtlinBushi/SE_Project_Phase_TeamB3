@@ -294,14 +294,6 @@ class LoginPage(tk.Frame):
                  bg=TOP_BG, fg=WHITE,
                  font=("Segoe UI", 13, "bold")).pack(side="left", padx=20, pady=12)
 
-        tk.Button(topbar, text="🏠  Home",
-                  bg=TOP_BG, fg=WHITE,
-                  activebackground="#1a4a6b", activeforeground=WHITE,
-                  relief="flat", cursor="hand2",
-                  font=("Segoe UI", 10, "bold"),
-                  padx=10, pady=6, bd=0,
-                 command=lambda: self.master.show_home()).pack(side="right", padx=18, pady=8)
-
         # animated canvas
         container = tk.Frame(self, bg=TOP_BG)
         container.pack(fill="both", expand=True)

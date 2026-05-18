@@ -261,18 +261,12 @@ class App(tk.Tk):
         y = (self.winfo_screenheight() - 700)  // 2
         self.geometry(f"+{x}+{y}")
         self.current_frame = None
-        self.show_home()
+        self.show_login()
 
     def clear(self):
         if self.current_frame:
             self.current_frame.destroy()
             self.current_frame = None
-
-    def show_home(self):
-        self.clear()
-        from home_page import HomePage
-        self.current_frame = HomePage(self)
-        self.current_frame.pack(fill="both", expand=True)
 
     def show_login(self):
         self.clear()
