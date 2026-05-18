@@ -5,6 +5,7 @@ CEN 302 Software Engineering | Group III | Epoka University
 """
 
 import tkinter as tk
+import re
 from tkinter import ttk, messagebox, simpledialog
 
 from database import query
@@ -20,6 +21,16 @@ def create_notification(user_role, user_id, notif_type, title, message):
         query("""INSERT INTO notifications (user_role, user_id, type, title, message)
                  VALUES (%s,%s,%s,%s,%s)""",
               (user_role, user_id, notif_type, title, message))
+    except Exception:
+        pass
+
+
+def create_activity(actor_role, actor_id, action_type, description):
+    """Insert a row into activity_log for auditing."""
+    try:
+        query("""INSERT INTO activity_log (actor_role, actor_id, action_type, description)
+                 VALUES (%s,%s,%s,%s)""",
+              (actor_role, actor_id, action_type, description))
     except Exception:
         pass
 
@@ -374,6 +385,11 @@ class AdminUsers(tk.Frame):
         pk  = "student_id" if role == "student" else "supervisor_id"
         query(f"DELETE FROM {tbl} WHERE {pk}=%s", (uid,))
         messagebox.showinfo("U fshi", f"Përdoruesi '{name}' u fshi me sukses.")
+        try:
+            create_activity("admin", SESSION.get("user_id"), "delete_user",
+                            f"Deleted {role} '{name}'")
+        except Exception:
+            pass
         self._load()
 
     def _create_user(self):
@@ -391,6 +407,11 @@ class AdminUsers(tk.Frame):
         query(f"INSERT INTO {tbl} (full_name, email, password_hash) VALUES (%s,%s,%s)",
               (name, email, hash_password(pw)))
         messagebox.showinfo("Created", f"{role.capitalize()} '{name}' created.")
+        try:
+            create_activity("admin", SESSION.get("user_id"), "create_user",
+                            f"Created {role} '{name}'")
+        except Exception:
+            pass
         for v in self._uvars.values():
             v.set("")
         self._load()
@@ -505,6 +526,11 @@ class EditUserDialog(tk.Toplevel):
                   (hash_password(pw), self.uid))
 
         messagebox.showinfo("Saved", "User updated successfully.")
+        try:
+            create_activity("admin", SESSION.get("user_id"), "edit_user",
+                            f"Updated {self.role} '{name}'")
+        except Exception:
+            pass
         self.destroy()
 
 # ═══════════════════════════════════════════════════════════
@@ -603,6 +629,11 @@ class AdminAssignments(tk.Frame):
                             "Supervisor Assigned",
                             f"You have been assigned to {spname}")
         messagebox.showinfo("Assigned", f"{sname} assigned to {spname}.")
+        try:
+            create_activity("admin", admin_id, "assign_supervisor",
+                            f"Assigned student '{sname}' to supervisor '{spname}'")
+        except Exception:
+            pass
         self._load()
 
     def _revoke(self):
@@ -616,11 +647,19 @@ class AdminAssignments(tk.Frame):
         query("DELETE FROM supervisor_assignments WHERE id=%s", (aid,))
         query("UPDATE students SET supervisor_id=NULL WHERE student_id=%s", (st_id,))
         messagebox.showinfo("Revoked", "Assignment revoked.")
+        try:
+            # resolve student name to avoid exposing internal IDs in the log
+            s_row = query("SELECT full_name FROM students WHERE student_id=%s", (st_id,), one=True) or {}
+            s_name = s_row.get("full_name") if s_row else "Unknown Student"
+            create_activity("admin", SESSION.get("user_id"), "revoke_assignment",
+                            f"Revoked assignment for student '{s_name}'")
+        except Exception:
+            pass
         self._load()
 
 
 # ═══════════════════════════════════════════════════════════
-class AdminActivityLog(tk.Frame):
+class AdminMeetingSchedule(tk.Frame):
 
     _PAIR_COLORS = [
         "#c0392b", "#e67e22", "#f39c12", "#27ae60", "#16a085",
@@ -1100,3 +1139,52 @@ class AdminProfile(tk.Frame):
             query("UPDATE administrators SET password_hash=%s WHERE admin_id=%s",
                   (hash_password(new_pw), sid))
         messagebox.showinfo("Saved", "Profile updated!")
+        try:
+            create_activity("admin", sid, "edit_profile", "Admin updated profile")
+        except Exception:
+            pass
+
+class AdminActivityLog(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent, bg=BG_MAIN)
+        page_header(self, "Activity Log", "System audit trail")
+        self._build()
+
+    def _build(self):
+        cf = card_frame(self, padx=0, pady=0)
+        cf.pack(fill="both", expand=True, padx=20, pady=12)
+
+        tk.Label(cf, text="Recent Activity", bg=BG_WHITE, fg=DARK,
+                 font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(10, 6))
+        tk.Frame(cf, bg=BORDER, height=1).pack(fill="x")
+
+        cols = ("Role", "Action", "Description", "Time")
+        tree = ttk.Treeview(cf, columns=cols, show="headings", height=20)
+        style_treeview(tree, cols, [90, 140, 340, 140])
+
+        vsb = ttk.Scrollbar(cf, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=vsb.set)
+        tree.pack(side="left", fill="both", expand=True, padx=(8,0), pady=8)
+        vsb.pack(side="right", fill="y", pady=8, padx=(0,8))
+
+        rows = query("""SELECT actor_role, action_type, description, logged_at
+                        FROM activity_log
+                        ORDER BY logged_at DESC
+                        LIMIT 200""") or []
+
+        if not rows:
+            tk.Label(cf, text="No activity recorded yet.",
+                     bg=BG_WHITE, fg=MUTED,
+                     font=("Segoe UI", 11)).pack(pady=20)
+            return
+
+        for r in rows:
+            desc = r.get("description") or ""
+            # remove patterns like "(id=123)" to avoid exposing internal IDs
+            desc = re.sub(r"\s*\(id=\d+\)", "", desc)
+            tree.insert("", "end", values=(
+                r["actor_role"],
+                r["action_type"],
+                desc,
+                str(r["logged_at"])[:16]
+            ))

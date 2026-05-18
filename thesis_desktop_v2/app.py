@@ -168,7 +168,7 @@ from pages.supervisor import (SupervisorDashboard, SupervisorReviews,
                                SupervisorMeetings,  SupervisorMessages,
                                SupervisorNotifications, SupervisorProfile)
 from pages.admin import (AdminDashboard, AdminUsers, AdminAssignments,
-                         AdminActivityLog, AdminNotifications, AdminProfile)
+                         AdminMeetingSchedule, AdminActivityLog, AdminNotifications, AdminProfile)
 
 # ── Dedicated Milestones & Deadlines pages ─────────────────
 # These are the full-featured implementations (6-phase tracker,
@@ -234,6 +234,7 @@ class AdminApp(BaseApp):
         ("dashboard",     "🏠", "Home"),
         ("users",         "👥", "Users"),
         ("assignments",   "🔗", "Assignments"),
+        ("meetings",      "📆", "Meetings"),
         ("activity",      "📋", "Activity"),
         ("notifications", "🔔", "Notifications"),
         ("profile",       "👤", "My Profile"),
@@ -242,6 +243,7 @@ class AdminApp(BaseApp):
         "dashboard":     AdminDashboard,
         "users":         AdminUsers,
         "assignments":   AdminAssignments,
+        "meetings":      AdminMeetingSchedule,
         "activity":      AdminActivityLog,
         "notifications": AdminNotifications,
         "profile":       AdminProfile,
