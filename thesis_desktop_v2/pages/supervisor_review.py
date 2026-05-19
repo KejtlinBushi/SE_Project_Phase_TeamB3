@@ -26,6 +26,7 @@ class SupervisorReviewWindow(tk.Toplevel):
         super().__init__(parent)
 
         self.parent = parent
+        #ruajtja e submission 
         self.submission = submission
         self._ensure_description_loaded()
         self.refresh_callback = refresh_callback
@@ -142,9 +143,9 @@ class SupervisorReviewWindow(tk.Toplevel):
         self._build_document_preview(left)
         self._build_feedback_panel(right)
 
-    # =========================
+   
     # LEFT: DOCUMENT PREVIEW
-    # =========================
+    
     def _build_document_preview(self, parent):
         tk.Label(
             parent,
@@ -183,6 +184,7 @@ class SupervisorReviewWindow(tk.Toplevel):
 
         self.doc_canvas.images = []
 
+        #presim 300 ms para se te behet load preview
         self.after(300, self._load_pdf_preview)
 
         bottom_doc = tk.Frame(parent, bg=WHITE)
@@ -314,9 +316,9 @@ class SupervisorReviewWindow(tk.Toplevel):
         self.doc_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         return "break"
 
-    # =========================
+    
     # RIGHT: FEEDBACK PANEL
-    # =========================
+   
     def _build_feedback_panel(self, parent):
         top_feedback = tk.Frame(parent, bg=WHITE)
         top_feedback.pack(fill="x", padx=22, pady=(18, 10))
@@ -381,7 +383,7 @@ class SupervisorReviewWindow(tk.Toplevel):
             ("Status", self.submission["status"]),
             ("Description", description_text)
         ]
-
+         #kryhet nje loop per te vendosur info ne dz kolona ne panalin djathtas
         for i, (label_text, value_text) in enumerate(info_items):
             row_number = (i // 2) + 1
             column_number = i % 2
@@ -452,7 +454,7 @@ class SupervisorReviewWindow(tk.Toplevel):
         self.feedback_box.pack(side="left", fill="both", expand=True)
         feedback_scroll.pack(side="right", fill="y")
 
-        # IMPORTANT: buttons are packed immediately after fixed-height feedback box
+      
         button_frame = tk.Frame(parent, bg=WHITE)
         button_frame.pack(fill="x", padx=22, pady=(0, 8))
         button_frame.lift()
@@ -516,6 +518,7 @@ class SupervisorReviewWindow(tk.Toplevel):
         open_file(self.file_path)
 
     def _get_feedback(self):
+        #merr tekstin nga fillimi deri ne fund 
         return self.feedback_box.get("1.0", "end").strip()
 
     def _insert_or_update_feedback(self, comment):

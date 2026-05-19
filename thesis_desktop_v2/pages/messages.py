@@ -67,7 +67,7 @@ class ChatMessagesBase(tk.Frame):
         self.messages_by_id = {}
 
         # UI attributes created later in _build_input_bar().
-        # Defining them here also prevents VS Code/Pylance yellow warnings.
+       
         self.reply_preview = None
         self.reply_title = None
         self.reply_text = None
@@ -86,14 +86,11 @@ class ChatMessagesBase(tk.Frame):
 
         self._build()
 
-    # =========================
+    
     # DATABASE SAFE UPGRADE
-    # =========================
+   
     def _ensure_optional_message_columns(self):
-        """
-        These columns are needed for reply/edit/delete.
-        If they already exist, the errors are ignored.
-        """
+        
         optional_columns = [
             "ALTER TABLE messages ADD COLUMN reply_to_message_id INT NULL",
             "ALTER TABLE messages ADD COLUMN is_deleted TINYINT DEFAULT 0",
@@ -106,9 +103,9 @@ class ChatMessagesBase(tk.Frame):
             except Exception:
                 pass
 
-    # =========================
+   
     # STYLE
-    # =========================
+    
     def _setup_scrollbar_style(self):
         try:
             style = ttk.Style()
@@ -134,9 +131,9 @@ class ChatMessagesBase(tk.Frame):
         except Exception:
             pass
 
-    # =========================
+   
     # MAIN UI
-    # =========================
+   
     def _build(self):
         self.main = tk.Frame(self, bg=BG_MAIN)
         self.main.pack(fill="both", expand=True, padx=20, pady=(12, 16))
@@ -178,7 +175,7 @@ class ChatMessagesBase(tk.Frame):
         )
         self.chat_card.pack(fill="both", expand=True)
 
-        # Use grid inside chat_card so the input bar keeps a fixed height.
+        # grid inside chat_card so the input bar keeps a fixed height.
         self.chat_card.grid_rowconfigure(0, weight=0)  # header
         self.chat_card.grid_rowconfigure(1, weight=0)  # tabs
         self.chat_card.grid_rowconfigure(2, weight=1)  # messages
@@ -325,7 +322,7 @@ class ChatMessagesBase(tk.Frame):
         self.input_outer.grid(row=3, column=0, sticky="ew")
         self.input_outer.grid_propagate(False)
 
-        # Reply preview is placed OVER the message area, not packed into the input bar.
+        
         # This prevents the typing area from shrinking when replying.
         self.reply_preview = tk.Frame(
             self.body,
@@ -458,9 +455,9 @@ class ChatMessagesBase(tk.Frame):
             fill="y"
         )
 
-    # =========================
+   
     # CONVERSATION LOADING
-    # =========================
+   
     def _load_default_conversation(self):
         if self.current_role == "student":
             self._load_student_supervisor()
@@ -468,6 +465,7 @@ class ChatMessagesBase(tk.Frame):
             self._load_supervisor_students()
 
     def _load_student_supervisor(self):
+        #merr id e userit dhe gjen supervisorin perkates
         sid = self.current_user_id
 
         supervisor = query("""
@@ -508,9 +506,9 @@ class ChatMessagesBase(tk.Frame):
             student["full_name"]: student["student_id"]
             for student in students
         }
-
+        #CCreates a dropdown with studen's names
         self.student_combo.config(values=list(self.conversation_options.keys()))
-
+         #automatikisht zgjidhet std i pare
         first_student = list(self.conversation_options.keys())[0]
         self.selected_conversation.set(first_student)
 
@@ -534,6 +532,7 @@ class ChatMessagesBase(tk.Frame):
         self.other_user_name = selected
 
         self.chat_title.config(text=self.other_user_name)
+        #vendos inicialet e std
         self._set_avatar_text(self.other_user_name)
         self._cancel_reply()
         self._load_content()
@@ -971,9 +970,9 @@ class ChatMessagesBase(tk.Frame):
             justify="center"
         ).pack(pady=(8, 0))
 
-    # =========================
+   
     # REPLY / EDIT / DELETE
-    # =========================
+    
     def _start_reply(self, row):
         self.reply_to_message = row
 
@@ -1076,9 +1075,9 @@ class ChatMessagesBase(tk.Frame):
 
         self._load_messages()
 
-    # =========================
+    
     # SEND
-    # =========================
+    
     def _send_message(self):
         body = self.msg_var.get().strip()
 
